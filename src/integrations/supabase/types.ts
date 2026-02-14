@@ -50,6 +50,84 @@ export type Database = {
         }
         Relationships: []
       }
+      donations: {
+        Row: {
+          amount: number
+          created_at: string
+          donor_name: string | null
+          email: string | null
+          id: string
+          message: string | null
+          payment_method: string | null
+          phone: string | null
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          donor_name?: string | null
+          email?: string | null
+          id?: string
+          message?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          donor_name?: string | null
+          email?: string | null
+          id?: string
+          message?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      library_content: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration: string | null
+          id: string
+          read_time: string | null
+          thumbnail_url: string | null
+          title: string
+          type: string
+          url: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration?: string | null
+          id?: string
+          read_time?: string | null
+          thumbnail_url?: string | null
+          title: string
+          type?: string
+          url?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration?: string | null
+          id?: string
+          read_time?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           college: string | null
