@@ -1,13 +1,14 @@
-
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Shield } from "lucide-react";
+import { Menu, X, Shield, User } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   const navLinks = [
     { name: "الرئيسية", path: "/" },
@@ -15,16 +16,15 @@ const Navbar = () => {
     { name: "الأنشطة", path: "/activities" },
     { name: "المكتبة التوعوية", path: "/library" },
     { name: "خريطة الأمان", path: "/safe-map" },
-    { name: "تواصل معنا", path: "/contact" },
+    { name: "تبرع", path: "/donate" },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-purple-100 shadow-sm">
+    <nav className="fixed w-full z-50 bg-card/80 backdrop-blur-md border-b border-primary/10 shadow-sm">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center h-20">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
             <img src="/src/assets/logo.png" alt="شعار الوحدة" className="h-16 w-auto object-contain" />
             <div className="hidden md:flex flex-col text-right">
@@ -33,78 +33,53 @@ const Navbar = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive(link.path) ? "text-primary font-bold" : "text-gray-600"
-                }`}
-              >
+              <Link key={link.path} to={link.path} className={`text-sm font-medium transition-colors hover:text-primary ${isActive(link.path) ? "text-primary font-bold" : "text-muted-foreground"}`}>
                 {link.name}
               </Link>
             ))}
-            
             <Link to="/report">
               <Button variant="default" className="bg-gradient-brand shadow-lg hover:shadow-xl transition-all duration-300">
-                <Shield className="ml-2 h-4 w-4" />
-                إبلاغ سري
+                <Shield className="ml-2 h-4 w-4" /> إبلاغ سري
               </Button>
             </Link>
-            
-             <Link to="/dashboard">
-              <Button variant="outline" size="sm" className="mr-2">
-                لوحة التحكم
-              </Button>
+            <Link to="/dashboard">
+              <Button variant="outline" size="sm">لوحة التحكم</Button>
             </Link>
+            {user ? (
+              <Link to="/profile">
+                <Button variant="ghost" size="icon"><User className="h-5 w-5" /></Button>
+              </Link>
+            ) : (
+              <Link to="/auth">
+                <Button variant="ghost" size="sm">تسجيل الدخول</Button>
+              </Link>
+            )}
           </div>
 
-          {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-600 hover:text-primary focus:outline-none"
-            >
+            <button onClick={() => setIsOpen(!isOpen)} className="text-muted-foreground hover:text-primary focus:outline-none">
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-t border-gray-100"
-          >
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="md:hidden bg-card border-t border-border">
             <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
               {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`text-base font-medium py-2 border-b border-gray-50 ${
-                    isActive(link.path) ? "text-primary" : "text-gray-600"
-                  }`}
-                >
+                <Link key={link.path} to={link.path} onClick={() => setIsOpen(false)} className={`text-base font-medium py-2 border-b border-border/50 ${isActive(link.path) ? "text-primary" : "text-muted-foreground"}`}>
                   {link.name}
                 </Link>
               ))}
               <Link to="/report" onClick={() => setIsOpen(false)}>
-                <Button className="w-full bg-gradient-brand">
-                  <Shield className="ml-2 h-4 w-4" />
-                  إبلاغ سري
-                </Button>
+                <Button className="w-full bg-gradient-brand"><Shield className="ml-2 h-4 w-4" /> إبلاغ سري</Button>
               </Link>
               <Link to="/dashboard" onClick={() => setIsOpen(false)}>
-                <Button variant="outline" className="w-full mt-2">
-                  لوحة التحكم
-                </Button>
+                <Button variant="outline" className="w-full">لوحة التحكم</Button>
               </Link>
             </div>
           </motion.div>
