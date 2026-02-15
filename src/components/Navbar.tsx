@@ -4,6 +4,7 @@ import { Menu, X, Shield, User } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import logoImg from "@/assets/logo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,8 +15,10 @@ const Navbar = () => {
     { name: "الرئيسية", path: "/" },
     { name: "من نحن", path: "/about" },
     { name: "الأنشطة", path: "/activities" },
-    { name: "المكتبة التوعوية", path: "/library" },
-    { name: "خريطة الأمان", path: "/safe-map" },
+    { name: "المكتبة", path: "/library" },
+    { name: "دليل الطالبة", path: "/student-guide" },
+    { name: "التوعية الرقمية", path: "/digital-awareness" },
+    { name: "شركاؤنا", path: "/partners" },
     { name: "تبرع", path: "/donate" },
   ];
 
@@ -26,7 +29,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center h-20">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/src/assets/logo.png" alt="شعار الوحدة" className="h-16 w-auto object-contain" />
+            <img src={logoImg} alt="شعار الوحدة" className="h-16 w-auto object-contain" />
             <div className="hidden md:flex flex-col text-right">
               <span className="text-sm font-bold text-primary">جامعة بني سويف التكنولوجية</span>
               <span className="text-xs text-muted-foreground">وحدة مناهضة العنف ضد المرأة</span>

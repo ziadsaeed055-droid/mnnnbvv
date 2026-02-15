@@ -7,11 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Users, FileText, AlertCircle, CheckCircle, Plus, Trash2, Heart } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -27,8 +26,25 @@ const statusLabels: Record<string, string> = {
   closed: "مغلق",
 };
 
+const callDashboardApi = async (action: string, body?: any) => {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-api?action=${action}`;
+  const options: RequestInit = {
+    method: body ? "POST" : "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+  };
+  if (body) options.body = JSON.stringify(body);
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || "خطأ في الخادم");
+  }
+  return res.json();
+};
+
 const Dashboard = () => {
-  const _auth = useAuth();
   const [reports, setReports] = useState<any[]>([]);
   const [volunteers, setVolunteers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -37,85 +53,96 @@ const Dashboard = () => {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Activity form
   const [actForm, setActForm] = useState({ title: "", description: "", type: "", location: "", date: "", image_url: "" });
   const [actDialog, setActDialog] = useState(false);
 
-  // Library form
   const [libForm, setLibForm] = useState({ title: "", description: "", type: "article", category: "", url: "", duration: "", read_time: "" });
   const [libDialog, setLibDialog] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
-    const [r, v, a, l, d, s] = await Promise.all([
-      supabase.from("reports").select("*").order("created_at", { ascending: false }),
-      supabase.from("volunteers").select("*").order("created_at", { ascending: false }),
-      supabase.from("activities").select("*").order("created_at", { ascending: false }),
-      supabase.from("library_content").select("*").order("created_at", { ascending: false }),
-      supabase.from("donations").select("*").order("created_at", { ascending: false }),
-      supabase.from("safety_surveys").select("*"),
-    ]);
-    setReports(r.data || []);
-    setVolunteers(v.data || []);
-    setActivities(a.data || []);
-    setLibraryItems(l.data || []);
-    setDonations(d.data || []);
-    setSurveys(s.data || []);
+    try {
+      const data = await callDashboardApi("fetch");
+      setReports(data.reports || []);
+      setVolunteers(data.volunteers || []);
+      setActivities(data.activities || []);
+      setLibraryItems(data.library || []);
+      setDonations(data.donations || []);
+      setSurveys(data.surveys || []);
+    } catch (e: any) {
+      toast.error("خطأ في تحميل البيانات: " + e.message);
+    }
     setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, []);
 
   const updateReportStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("reports").update({ status }).eq("id", id);
-    if (error) toast.error("خطأ في التحديث");
-    else { toast.success("تم التحديث"); fetchAll(); }
+    try {
+      await callDashboardApi("update-report-status", { id, status });
+      toast.success("تم التحديث");
+      fetchAll();
+    } catch { toast.error("خطأ في التحديث"); }
   };
 
   const addActivity = async () => {
     if (!actForm.title || !actForm.description) { toast.error("يرجى ملء الحقول المطلوبة"); return; }
-    const { error } = await supabase.from("activities").insert({
-      ...actForm,
-      date: actForm.date ? new Date(actForm.date).toISOString() : null,
-      image_url: actForm.image_url || null,
-      location: actForm.location || null,
-      type: actForm.type || null,
-    });
-    if (error) toast.error("خطأ: " + error.message);
-    else { toast.success("تمت الإضافة"); setActDialog(false); setActForm({ title: "", description: "", type: "", location: "", date: "", image_url: "" }); fetchAll(); }
+    try {
+      await callDashboardApi("add-activity", {
+        title: actForm.title,
+        description: actForm.description,
+        date: actForm.date ? new Date(actForm.date).toISOString() : null,
+        image_url: actForm.image_url || null,
+        location: actForm.location || null,
+        type: actForm.type || null,
+      });
+      toast.success("تمت الإضافة");
+      setActDialog(false);
+      setActForm({ title: "", description: "", type: "", location: "", date: "", image_url: "" });
+      fetchAll();
+    } catch (e: any) { toast.error("خطأ: " + e.message); }
   };
 
   const deleteActivity = async (id: string) => {
-    const { error } = await supabase.from("activities").delete().eq("id", id);
-    if (error) toast.error("خطأ في الحذف");
-    else { toast.success("تم الحذف"); fetchAll(); }
+    try {
+      await callDashboardApi("delete-activity", { id });
+      toast.success("تم الحذف");
+      fetchAll();
+    } catch { toast.error("خطأ في الحذف"); }
   };
 
   const addLibraryItem = async () => {
     if (!libForm.title) { toast.error("يرجى إدخال العنوان"); return; }
-    const { error } = await supabase.from("library_content").insert({
-      ...libForm,
-      description: libForm.description || null,
-      category: libForm.category || null,
-      url: libForm.url || null,
-      duration: libForm.duration || null,
-      read_time: libForm.read_time || null,
-    });
-    if (error) toast.error("خطأ: " + error.message);
-    else { toast.success("تمت الإضافة"); setLibDialog(false); setLibForm({ title: "", description: "", type: "article", category: "", url: "", duration: "", read_time: "" }); fetchAll(); }
+    try {
+      await callDashboardApi("add-library", {
+        title: libForm.title,
+        description: libForm.description || null,
+        type: libForm.type,
+        category: libForm.category || null,
+        url: libForm.url || null,
+        duration: libForm.duration || null,
+        read_time: libForm.read_time || null,
+      });
+      toast.success("تمت الإضافة");
+      setLibDialog(false);
+      setLibForm({ title: "", description: "", type: "article", category: "", url: "", duration: "", read_time: "" });
+      fetchAll();
+    } catch (e: any) { toast.error("خطأ: " + e.message); }
   };
 
   const deleteLibraryItem = async (id: string) => {
-    const { error } = await supabase.from("library_content").delete().eq("id", id);
-    if (error) toast.error("خطأ في الحذف");
-    else { toast.success("تم الحذف"); fetchAll(); }
+    try {
+      await callDashboardApi("delete-library", { id });
+      toast.success("تم الحذف");
+      fetchAll();
+    } catch { toast.error("خطأ في الحذف"); }
   };
 
   const safetyIndex = surveys.length > 0
-    ? Math.round((surveys.filter(s => s.feels_safe).length / surveys.length) * 100)
+    ? Math.round((surveys.filter((s: any) => s.feels_safe).length / surveys.length) * 100)
     : 0;
 
-  const totalDonations = donations.reduce((sum, d) => sum + Number(d.amount), 0);
+  const totalDonations = donations.reduce((sum: number, d: any) => sum + Number(d.amount), 0);
 
   if (loading) {
     return <div className="container mx-auto px-4 py-20 text-center text-muted-foreground">جاري التحميل...</div>;
@@ -144,7 +171,7 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-medium">تم حلها</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{reports.filter(r => r.status === "resolved").length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold">{reports.filter((r: any) => r.status === "resolved").length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -190,7 +217,7 @@ const Dashboard = () => {
                 <p className="text-center py-10 text-muted-foreground">لا توجد بلاغات حالياً</p>
               ) : (
                 <div className="space-y-4">
-                  {reports.map((r) => (
+                  {reports.map((r: any) => (
                     <div key={r.id} className="border border-border rounded-xl p-4 space-y-3">
                       <div className="flex justify-between items-start flex-wrap gap-2">
                         <div>
@@ -229,7 +256,7 @@ const Dashboard = () => {
                 <p className="text-center py-10 text-muted-foreground">لا توجد طلبات حالياً</p>
               ) : (
                 <div className="space-y-3">
-                  {volunteers.map((v) => (
+                  {volunteers.map((v: any) => (
                     <div key={v.id} className="border border-border rounded-xl p-4 flex justify-between items-start flex-wrap gap-3">
                       <div>
                         <p className="font-bold text-foreground">{v.name}</p>
@@ -258,7 +285,10 @@ const Dashboard = () => {
                   <Button size="sm"><Plus className="ml-1 h-4 w-4" /> إضافة نشاط</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
-                  <DialogHeader><DialogTitle>إضافة نشاط جديد</DialogTitle></DialogHeader>
+                  <DialogHeader>
+                    <DialogTitle>إضافة نشاط جديد</DialogTitle>
+                    <DialogDescription>أضف نشاطاً أو فعالية جديدة للوحدة</DialogDescription>
+                  </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2"><Label>العنوان *</Label><Input value={actForm.title} onChange={(e) => setActForm({ ...actForm, title: e.target.value })} /></div>
                     <div className="space-y-2"><Label>الوصف *</Label><Textarea value={actForm.description} onChange={(e) => setActForm({ ...actForm, description: e.target.value })} /></div>
@@ -280,7 +310,7 @@ const Dashboard = () => {
                 <p className="text-center py-10 text-muted-foreground">لا توجد أنشطة</p>
               ) : (
                 <div className="space-y-3">
-                  {activities.map((a) => (
+                  {activities.map((a: any) => (
                     <div key={a.id} className="border border-border rounded-xl p-4 flex justify-between items-start">
                       <div>
                         <p className="font-bold text-foreground">{a.title}</p>
@@ -305,7 +335,10 @@ const Dashboard = () => {
                   <Button size="sm"><Plus className="ml-1 h-4 w-4" /> إضافة محتوى</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
-                  <DialogHeader><DialogTitle>إضافة محتوى جديد</DialogTitle></DialogHeader>
+                  <DialogHeader>
+                    <DialogTitle>إضافة محتوى جديد</DialogTitle>
+                    <DialogDescription>أضف مقالاً أو فيديو أو ملف PDF للمكتبة التوعوية</DialogDescription>
+                  </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={(e) => setLibForm({ ...libForm, title: e.target.value })} /></div>
                     <div className="space-y-2"><Label>الوصف</Label><Textarea value={libForm.description} onChange={(e) => setLibForm({ ...libForm, description: e.target.value })} /></div>
@@ -334,7 +367,7 @@ const Dashboard = () => {
                 <p className="text-center py-10 text-muted-foreground">لا يوجد محتوى</p>
               ) : (
                 <div className="space-y-3">
-                  {libraryItems.map((item) => (
+                  {libraryItems.map((item: any) => (
                     <div key={item.id} className="border border-border rounded-xl p-4 flex justify-between items-start">
                       <div>
                         <p className="font-bold text-foreground">{item.title}</p>
@@ -360,7 +393,7 @@ const Dashboard = () => {
                 <p className="text-center py-10 text-muted-foreground">لا توجد تبرعات</p>
               ) : (
                 <div className="space-y-3">
-                  {donations.map((d) => (
+                  {donations.map((d: any) => (
                     <div key={d.id} className="border border-border rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <p className="font-bold text-foreground">{d.donor_name || "متبرع مجهول"} - {d.amount} ج.م</p>
@@ -392,13 +425,13 @@ const Dashboard = () => {
                 </div>
                 <div className="text-center p-6 bg-accent rounded-xl">
                   <p className="text-3xl font-bold text-primary">
-                    {surveys.length > 0 ? Math.round((surveys.filter(s => s.knows_rights).length / surveys.length) * 100) : 0}%
+                    {surveys.length > 0 ? Math.round((surveys.filter((s: any) => s.knows_rights).length / surveys.length) * 100) : 0}%
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">يعرفون حقوقهم</p>
                 </div>
                 <div className="text-center p-6 bg-red-50 rounded-xl">
                   <p className="text-3xl font-bold text-destructive">
-                    {surveys.length > 0 ? Math.round((surveys.filter(s => s.harassed).length / surveys.length) * 100) : 0}%
+                    {surveys.length > 0 ? Math.round((surveys.filter((s: any) => s.harassed).length / surveys.length) * 100) : 0}%
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">تعرضوا للمضايقة</p>
                 </div>

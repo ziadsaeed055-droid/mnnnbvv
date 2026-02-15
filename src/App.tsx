@@ -12,6 +12,9 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Donate from "./pages/Donate";
+import StudentGuide from "./pages/StudentGuide";
+import DigitalAwareness from "./pages/DigitalAwareness";
+import Partners from "./pages/Partners";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -66,6 +69,9 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/donate" element={<Donate />} />
+              <Route path="/student-guide" element={<StudentGuide />} />
+              <Route path="/digital-awareness" element={<DigitalAwareness />} />
+              <Route path="/partners" element={<Partners />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
