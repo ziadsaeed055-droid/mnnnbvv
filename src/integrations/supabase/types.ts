@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       activities: {
         Row: {
+          contact_info: string | null
           created_at: string
           created_by: string | null
           date: string | null
@@ -23,10 +24,16 @@ export type Database = {
           id: string
           image_url: string | null
           location: string | null
+          max_attendees: number | null
+          notes: string | null
+          organizer: string | null
+          status: string | null
+          target_audience: string | null
           title: string
           type: string | null
         }
         Insert: {
+          contact_info?: string | null
           created_at?: string
           created_by?: string | null
           date?: string | null
@@ -34,10 +41,16 @@ export type Database = {
           id?: string
           image_url?: string | null
           location?: string | null
+          max_attendees?: number | null
+          notes?: string | null
+          organizer?: string | null
+          status?: string | null
+          target_audience?: string | null
           title: string
           type?: string | null
         }
         Update: {
+          contact_info?: string | null
           created_at?: string
           created_by?: string | null
           date?: string | null
@@ -45,8 +58,40 @@ export type Database = {
           id?: string
           image_url?: string | null
           location?: string | null
+          max_attendees?: number | null
+          notes?: string | null
+          organizer?: string | null
+          status?: string | null
+          target_audience?: string | null
           title?: string
           type?: string | null
+        }
+        Relationships: []
+      }
+      content_reactions: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string
+          id: string
+          reaction_type: string
+          session_id: string
+        }
+        Insert: {
+          content_id: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          session_id: string
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          session_id?: string
         }
         Relationships: []
       }
@@ -241,33 +286,45 @@ export type Database = {
       }
       volunteers: {
         Row: {
+          birth_date: string | null
           college: string
           created_at: string
+          department: string | null
           email: string | null
+          gender: string | null
           id: string
           name: string
+          national_id: string | null
           phone: string | null
           reason: string | null
           skills: string | null
           status: string | null
         }
         Insert: {
+          birth_date?: string | null
           college: string
           created_at?: string
+          department?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           name: string
+          national_id?: string | null
           phone?: string | null
           reason?: string | null
           skills?: string | null
           status?: string | null
         }
         Update: {
+          birth_date?: string | null
           college?: string
           created_at?: string
+          department?: string | null
           email?: string | null
+          gender?: string | null
           id?: string
           name?: string
+          national_id?: string | null
           phone?: string | null
           reason?: string | null
           skills?: string | null
