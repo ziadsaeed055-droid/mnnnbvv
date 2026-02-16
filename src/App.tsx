@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import Report from "./pages/Report";
 import Dashboard from "./pages/Dashboard";
 import Activities from "./pages/Activities";
+import ActivityDetail from "./pages/ActivityDetail";
 import Volunteer from "./pages/Volunteer";
 import Quiz from "./pages/Quiz";
 import About from "./pages/About";
@@ -31,17 +32,11 @@ const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
-
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
   return (
     <div className="min-h-screen flex flex-col font-cairo bg-background text-foreground overflow-x-hidden" dir="rtl">
       <Navbar />
-      <main className="flex-grow pt-20 pb-16 md:pb-0">
-        {children}
-      </main>
+      <main className="flex-grow pt-20 pb-16 md:pb-0">{children}</main>
       <Footer />
       <BottomNav />
     </div>
@@ -61,6 +56,7 @@ const App = () => (
               <Route path="/report" element={<Report />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/activities" element={<Activities />} />
+              <Route path="/activity/:id" element={<ActivityDetail />} />
               <Route path="/volunteer" element={<Volunteer />} />
               <Route path="/quiz" element={<Quiz />} />
               <Route path="/about" element={<About />} />
