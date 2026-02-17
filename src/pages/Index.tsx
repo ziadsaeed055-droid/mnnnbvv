@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Shield, Heart, Users, BookOpen, ChevronLeft, Calendar, Activity, ArrowLeft } from "lucide-react";
+import { Shield, Heart, Users, BookOpen, ChevronLeft, Calendar, Activity, ArrowLeft, Scale, HelpCircle, Award } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,20 +12,30 @@ const typeLabels: Record<string, string> = {
 const Index = () => {
   const [safetyIndex, setSafetyIndex] = useState(0);
   const [activities, setActivities] = useState<any[]>([]);
+  const [volunteers, setVolunteers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [surveyRes, actRes] = await Promise.all([
+      const [surveyRes, actRes, volRes] = await Promise.all([
         supabase.from("safety_surveys").select("feels_safe"),
         supabase.from("activities").select("*").order("created_at", { ascending: false }).limit(3),
+        supabase.from("volunteers").select("*").eq("is_approved", true).order("created_at", { ascending: false }).limit(4),
       ]);
       if (surveyRes.data && surveyRes.data.length > 0) {
         setSafetyIndex(Math.round((surveyRes.data.filter(s => s.feels_safe).length / surveyRes.data.length) * 100));
       }
       setActivities(actRes.data || []);
+      setVolunteers((volRes.data as any[]) || []);
     };
     fetchData();
   }, []);
+
+  const faqs = [
+    { q: "هل الشكوى سرية؟", a: "نعم، جميع الشكاوى تُعامل بسرية تامة ولا يتم الكشف عن هوية المشتكي." },
+    { q: "هل يتم ذكر اسمي في التحقيق؟", a: "لا، لديك الحق في تقديم بلاغ مجهول بالكامل." },
+    { q: "كم يستغرق التحقيق؟", a: "يعتمد على طبيعة القضية، عادة من أسبوع إلى شهر." },
+    { q: "هل يمكن التراجع عن الشكوى؟", a: "نعم، يحق لك التراجع في أي مرحلة من مراحل التحقيق." },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -98,6 +108,63 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Code of Conduct Section */}
+      <section className="py-20 bg-card">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="flex items-center gap-2 text-primary font-bold mb-2"><Scale className="h-5 w-5" /><span>ميثاق السلوك</span></div>
+              <h2 className="text-3xl font-bold text-foreground mb-4">الدستور الأخلاقي للحرم الجامعي</h2>
+              <p className="text-muted-foreground mb-6 leading-relaxed">وثيقة رسمية توضح السلوكيات المقبولة وغير المقبولة داخل الجامعة، والعقوبات المترتبة، والتزامات الطلاب وحقوقهم.</p>
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {["السلوكيات المرفوضة", "العقوبات التدريجية", "حقوق المشتكي", "الإبلاغ المجهول"].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-accent p-3 rounded-xl text-sm font-medium text-foreground">
+                    <Shield className="h-4 w-4 text-primary shrink-0" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+              <Link to="/code-of-conduct"><Button className="bg-gradient-brand font-bold">اطلع على الميثاق الكامل <ChevronLeft className="mr-2 h-4 w-4" /></Button></Link>
+            </div>
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-brand opacity-5 rounded-3xl blur-2xl" />
+              <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 border border-primary/10">
+                <Scale className="h-16 w-16 text-primary/20 mb-4" />
+                <blockquote className="text-lg font-medium text-foreground leading-relaxed italic">
+                  "تلتزم جامعة بني سويف التكنولوجية بتوفير بيئة تعليمية آمنة وعادلة خالية من جميع أشكال التمييز والعنف."
+                </blockquote>
+                <p className="text-sm text-muted-foreground mt-4">— مقدمة ميثاق السلوك الجامعي</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Know Your Rights Section */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4 md:px-6 text-center">
+          <div className="flex items-center justify-center gap-2 text-primary font-bold mb-2"><BookOpen className="h-5 w-5" /><span>اعرف حقوقك</span></div>
+          <h2 className="text-3xl font-bold text-foreground mb-4">المعرفة هي خط الدفاع الأول</h2>
+          <p className="text-muted-foreground mb-12 max-w-2xl mx-auto">تعرّف على حقوقك الكاملة داخل الجامعة والقوانين المصرية والدولية التي تحميك</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[
+              { icon: Shield, title: "حقوقك الأساسية", desc: "الحق في بيئة آمنة وخالية من العنف والتمييز والتحرش", color: "text-blue-600 bg-blue-100" },
+              { icon: Scale, title: "القوانين المحلية", desc: "قانون العقوبات وقانون مكافحة التحرش والجرائم الإلكترونية", color: "text-amber-600 bg-amber-100" },
+              { icon: Users, title: "المواثيق الدولية", desc: "اتفاقية سيداو والإعلان العالمي لحقوق الإنسان", color: "text-green-600 bg-green-100" },
+            ].map((item, i) => (
+              <div key={i} className="bg-card p-6 rounded-2xl border border-border hover:shadow-md transition-shadow text-center">
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${item.color} mx-auto mb-4`}>
+                  <item.icon className="h-7 w-7" />
+                </div>
+                <h3 className="font-bold text-foreground mb-2">{item.title}</h3>
+                <p className="text-sm text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <Link to="/know-your-rights"><Button className="bg-gradient-brand font-bold">اعرف حقوقك الكاملة <ChevronLeft className="mr-2 h-4 w-4" /></Button></Link>
+        </div>
+      </section>
+
       {/* Latest Activities */}
       <section className="py-20 bg-card">
         <div className="container mx-auto px-4 md:px-6">
@@ -131,6 +198,62 @@ const Index = () => {
             </div>
           )}
           <div className="mt-8 text-center md:hidden"><Link to="/activities"><Button variant="outline" className="w-full">عرض كل الأنشطة</Button></Link></div>
+        </div>
+      </section>
+
+      {/* Volunteers Section */}
+      {volunteers.length > 0 && (
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex justify-between items-end mb-12">
+              <div>
+                <div className="flex items-center gap-2 text-primary font-bold mb-2"><Award className="h-5 w-5" /><span>أبطال التغيير</span></div>
+                <h2 className="text-3xl font-bold text-foreground mb-2">فريق المتطوعين</h2>
+                <p className="text-muted-foreground">طلاب متميزون يعملون لبيئة جامعية أكثر أماناً</p>
+              </div>
+              <Link to="/volunteers"><Button variant="outline" className="hidden md:flex">عرض الكل</Button></Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {volunteers.map((v: any) => (
+                <div key={v.id} className="bg-card rounded-2xl border border-border p-6 text-center hover:shadow-md transition-shadow">
+                  {v.photo_url ? (
+                    <img src={v.photo_url} alt={v.name} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover border-2 border-primary/20" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full mx-auto mb-3 bg-accent flex items-center justify-center border-2 border-primary/20">
+                      <span className="text-xl font-bold text-primary">{v.name?.charAt(0)}</span>
+                    </div>
+                  )}
+                  <h4 className="font-bold text-foreground text-sm">{v.name}</h4>
+                  {v.role_title && <p className="text-xs text-primary mt-1">{v.role_title}</p>}
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 text-center md:hidden"><Link to="/volunteers"><Button variant="outline" className="w-full">عرض كل المتطوعين</Button></Link></div>
+          </div>
+        </section>
+      )}
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-card">
+        <div className="container mx-auto px-4 md:px-6 max-w-4xl">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-2 text-primary font-bold mb-2"><HelpCircle className="h-5 w-5" /><span>أسئلة شائعة</span></div>
+            <h2 className="text-3xl font-bold text-foreground mb-4">أسئلة يتكرر طرحها</h2>
+          </div>
+          <div className="space-y-3 mb-8">
+            {faqs.map((faq, i) => (
+              <div key={i} className="bg-muted/30 border border-border rounded-xl p-5">
+                <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-primary shrink-0" />
+                  {faq.q}
+                </h4>
+                <p className="text-sm text-muted-foreground pr-6 leading-relaxed">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <Link to="/faq"><Button variant="outline" className="font-bold">عرض جميع الأسئلة ({">"}60 سؤال) <ChevronLeft className="mr-2 h-4 w-4" /></Button></Link>
+          </div>
         </div>
       </section>
 

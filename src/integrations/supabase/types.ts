@@ -293,12 +293,16 @@ export type Database = {
           email: string | null
           gender: string | null
           id: string
+          is_approved: boolean | null
           name: string
           national_id: string | null
           phone: string | null
+          photo_url: string | null
           reason: string | null
+          role_title: string | null
           skills: string | null
           status: string | null
+          volunteer_section: string | null
         }
         Insert: {
           birth_date?: string | null
@@ -308,12 +312,16 @@ export type Database = {
           email?: string | null
           gender?: string | null
           id?: string
+          is_approved?: boolean | null
           name: string
           national_id?: string | null
           phone?: string | null
+          photo_url?: string | null
           reason?: string | null
+          role_title?: string | null
           skills?: string | null
           status?: string | null
+          volunteer_section?: string | null
         }
         Update: {
           birth_date?: string | null
@@ -323,12 +331,16 @@ export type Database = {
           email?: string | null
           gender?: string | null
           id?: string
+          is_approved?: boolean | null
           name?: string
           national_id?: string | null
           phone?: string | null
+          photo_url?: string | null
           reason?: string | null
+          role_title?: string | null
           skills?: string | null
           status?: string | null
+          volunteer_section?: string | null
         }
         Relationships: []
       }
