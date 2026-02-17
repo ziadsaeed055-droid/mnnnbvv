@@ -16,10 +16,10 @@ const Navbar = () => {
     { name: "من نحن", path: "/about" },
     { name: "الأنشطة", path: "/activities" },
     { name: "المكتبة", path: "/library" },
-    { name: "دليل الطالبة", path: "/student-guide" },
-    { name: "التوعية الرقمية", path: "/digital-awareness" },
-    { name: "شركاؤنا", path: "/partners" },
-    { name: "تبرع", path: "/donate" },
+    { name: "ميثاق السلوك", path: "/code-of-conduct" },
+    { name: "اعرف حقوقك", path: "/know-your-rights" },
+    { name: "المتطوعين", path: "/volunteers" },
+    { name: "الأسئلة الشائعة", path: "/faq" },
   ];
 
   const isActive = (path: string) => location.pathname === path;

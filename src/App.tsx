@@ -16,6 +16,10 @@ import Donate from "./pages/Donate";
 import StudentGuide from "./pages/StudentGuide";
 import DigitalAwareness from "./pages/DigitalAwareness";
 import Partners from "./pages/Partners";
+import CodeOfConduct from "./pages/CodeOfConduct";
+import FAQ from "./pages/FAQ";
+import KnowYourRights from "./pages/KnowYourRights";
+import VolunteersShowcase from "./pages/VolunteersShowcase";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -58,6 +62,7 @@ const App = () => (
               <Route path="/activities" element={<Activities />} />
               <Route path="/activity/:id" element={<ActivityDetail />} />
               <Route path="/volunteer" element={<Volunteer />} />
+              <Route path="/volunteers" element={<VolunteersShowcase />} />
               <Route path="/quiz" element={<Quiz />} />
               <Route path="/about" element={<About />} />
               <Route path="/library" element={<Library />} />
@@ -68,6 +73,9 @@ const App = () => (
               <Route path="/student-guide" element={<StudentGuide />} />
               <Route path="/digital-awareness" element={<DigitalAwareness />} />
               <Route path="/partners" element={<Partners />} />
+              <Route path="/code-of-conduct" element={<CodeOfConduct />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/know-your-rights" element={<KnowYourRights />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
