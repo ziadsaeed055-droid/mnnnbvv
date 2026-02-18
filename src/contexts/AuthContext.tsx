@@ -10,6 +10,8 @@ interface Profile {
   phone: string | null;
   college: string | null;
   role: string | null;
+  avatar_url: string | null;
+  department: string | null;
 }
 
 interface AuthContextType {

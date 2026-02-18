@@ -20,6 +20,7 @@ import CodeOfConduct from "./pages/CodeOfConduct";
 import FAQ from "./pages/FAQ";
 import KnowYourRights from "./pages/KnowYourRights";
 import VolunteersShowcase from "./pages/VolunteersShowcase";
+import Forum from "./pages/Forum";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -76,6 +77,7 @@ const App = () => (
               <Route path="/code-of-conduct" element={<CodeOfConduct />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/know-your-rights" element={<KnowYourRights />} />
+              <Route path="/forum" element={<Forum />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
