@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ExternalLink, Heart, ThumbsUp, Smile } from "lucide-react";
+import { FileText, Heart, ThumbsUp, Smile, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const getSessionId = () => {
@@ -14,6 +14,47 @@ const reactionIcons: Record<string, { icon: any; label: string; color: string }>
   like: { icon: ThumbsUp, label: "إعجاب", color: "text-blue-500" },
   love: { icon: Heart, label: "أحببته", color: "text-red-500" },
   smile: { icon: Smile, label: "مفيد", color: "text-yellow-500" },
+};
+
+const ArticleCard = ({ article, ReactionButtons }: { article: any; ReactionButtons: any }) => {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="bg-card p-6 rounded-xl border border-border hover:shadow-md transition-shadow group">
+      <div className="flex items-start gap-4">
+        <div className="bg-accent p-3 rounded-lg text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+          <FileText className="h-6 w-6" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-lg">{article.title}</h3>
+          <div className="flex gap-3 text-sm text-muted-foreground mt-1">
+            {article.category && <span className="bg-muted px-2 py-0.5 rounded text-xs">{article.category}</span>}
+            {article.read_time && <span>{article.read_time} قراءة</span>}
+            <span className="text-xs">{new Date(article.created_at).toLocaleDateString("ar-EG")}</span>
+          </div>
+          {article.description && <p className="text-sm text-muted-foreground mt-2">{article.description}</p>}
+          {article.content && (
+            <div className="mt-3">
+              <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 text-sm text-primary font-bold hover:underline">
+                {expanded ? "إخفاء المحتوى" : "قراءة المقال الكامل"}
+                {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              {expanded && (
+                <div className="mt-3 p-4 bg-muted/30 rounded-xl border border-border">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap">{article.content}</p>
+                </div>
+              )}
+            </div>
+          )}
+          {article.type === "pdf" && article.url && (
+            <a href={article.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-sm text-primary font-bold hover:underline">
+              <Download className="h-4 w-4" /> تحميل الملف PDF
+            </a>
+          )}
+          <ReactionButtons itemId={article.id} />
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const Library = () => {
@@ -47,7 +88,8 @@ const Library = () => {
   const getReactionCount = (contentId: string, type: string) => reactions.filter(r => r.content_id === contentId && r.reaction_type === type).length;
   const hasReacted = (contentId: string, type: string) => reactions.some(r => r.content_id === contentId && r.reaction_type === type && r.session_id === sessionId);
 
-  const articles = items.filter(i => i.type === "article" || i.type === "pdf");
+  const articles = items.filter(i => i.type === "article");
+  const pdfs = items.filter(i => i.type === "pdf");
   const videos = items.filter(i => i.type === "video");
   const infographics = items.filter(i => i.type === "infographic");
 
@@ -76,40 +118,45 @@ const Library = () => {
       </div>
 
       <Tabs defaultValue="articles" className="max-w-4xl mx-auto">
-        <TabsList className={`grid w-full mb-8 ${infographics.length > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
-          <TabsTrigger value="articles">📄 مقالات وأدلة ({articles.length})</TabsTrigger>
-          <TabsTrigger value="videos">🎬 مكتبة الفيديو ({videos.length})</TabsTrigger>
-          {infographics.length > 0 && <TabsTrigger value="infographics">📊 إنفوجرافيك ({infographics.length})</TabsTrigger>}
+        <TabsList className="grid w-full mb-8 grid-cols-4">
+          <TabsTrigger value="articles">📄 مقالات ({articles.length})</TabsTrigger>
+          <TabsTrigger value="pdfs">📋 ملفات PDF ({pdfs.length})</TabsTrigger>
+          <TabsTrigger value="videos">🎬 فيديوهات ({videos.length})</TabsTrigger>
+          <TabsTrigger value="infographics">📊 إنفوجرافيك ({infographics.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="articles">
           {articles.length === 0 ? (
-            <p className="text-center py-10 text-muted-foreground">لا يوجد محتوى حالياً.</p>
+            <p className="text-center py-10 text-muted-foreground">لا يوجد مقالات حالياً.</p>
           ) : (
             <div className="grid gap-4">
               {articles.map((article) => (
-                <div key={article.id} className="bg-card p-6 rounded-xl border border-border hover:shadow-md transition-shadow group">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="bg-accent p-3 rounded-lg text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
-                        <FileText className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-lg">{article.title}</h3>
-                        <div className="flex gap-3 text-sm text-muted-foreground mt-1">
-                          {article.category && <span className="bg-muted px-2 py-0.5 rounded text-xs">{article.category}</span>}
-                          {article.read_time && <span>{article.read_time} قراءة</span>}
-                          <span className="text-xs">{new Date(article.created_at).toLocaleDateString("ar-EG")}</span>
-                        </div>
-                        {article.description && <p className="text-sm text-muted-foreground mt-2">{article.description}</p>}
-                        <ReactionButtons itemId={article.id} />
-                      </div>
+                <ArticleCard key={article.id} article={article} ReactionButtons={ReactionButtons} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="pdfs">
+          {pdfs.length === 0 ? (
+            <p className="text-center py-10 text-muted-foreground">لا يوجد ملفات PDF حالياً.</p>
+          ) : (
+            <div className="grid gap-4">
+              {pdfs.map((pdf) => (
+                <div key={pdf.id} className="bg-card p-6 rounded-xl border border-border hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-red-100 p-3 rounded-lg text-red-600 shrink-0"><FileText className="h-6 w-6" /></div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-foreground text-lg">{pdf.title}</h3>
+                      {pdf.category && <span className="bg-muted px-2 py-0.5 rounded text-xs text-muted-foreground">{pdf.category}</span>}
+                      {pdf.description && <p className="text-sm text-muted-foreground mt-2">{pdf.description}</p>}
+                      {pdf.url && (
+                        <a href={pdf.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3">
+                          <Button size="sm" variant="outline"><Download className="ml-1 h-4 w-4" /> تحميل PDF</Button>
+                        </a>
+                      )}
+                      <ReactionButtons itemId={pdf.id} />
                     </div>
-                    {article.url && (
-                      <a href={article.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary"><ExternalLink className="h-5 w-5" /></Button>
-                      </a>
-                    )}
                   </div>
                 </div>
               ))}
@@ -127,8 +174,6 @@ const Library = () => {
                   <div className="aspect-video bg-foreground/5 relative flex items-center justify-center">
                     {video.url ? (
                       <video src={video.url} controls className="w-full h-full object-cover" preload="metadata" />
-                    ) : video.thumbnail_url ? (
-                      <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-12 h-12 bg-primary/20 backdrop-blur-sm rounded-full flex items-center justify-center text-primary border border-primary/50">
                         <div className="w-0 h-0 border-t-8 border-t-transparent border-l-[14px] border-l-primary border-b-8 border-b-transparent ml-1"></div>
@@ -148,8 +193,10 @@ const Library = () => {
           )}
         </TabsContent>
 
-        {infographics.length > 0 && (
-          <TabsContent value="infographics">
+        <TabsContent value="infographics">
+          {infographics.length === 0 ? (
+            <p className="text-center py-10 text-muted-foreground">لا يوجد إنفوجرافيك حالياً.</p>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {infographics.map((item) => (
                 <div key={item.id} className="bg-card rounded-xl overflow-hidden border border-border hover:shadow-md transition-shadow">
@@ -162,8 +209,8 @@ const Library = () => {
                 </div>
               ))}
             </div>
-          </TabsContent>
-        )}
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );

@@ -19,15 +19,16 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
-    // Handle different actions
     if (action === "fetch") {
-      const [reports, volunteers, activities, library, donations, surveys] = await Promise.all([
+      const [reports, volunteers, activities, library, donations, surveys, profiles, chatMessages] = await Promise.all([
         supabase.from("reports").select("*").order("created_at", { ascending: false }),
         supabase.from("volunteers").select("*").order("created_at", { ascending: false }),
         supabase.from("activities").select("*").order("created_at", { ascending: false }),
         supabase.from("library_content").select("*").order("created_at", { ascending: false }),
         supabase.from("donations").select("*").order("created_at", { ascending: false }),
         supabase.from("safety_surveys").select("*"),
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("chat_messages").select("*").order("created_at", { ascending: true }),
       ]);
 
       return new Response(JSON.stringify({
@@ -37,6 +38,8 @@ serve(async (req) => {
         library: library.data || [],
         donations: donations.data || [],
         surveys: surveys.data || [],
+        profiles: profiles.data || [],
+        chatMessages: chatMessages.data || [],
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -51,6 +54,13 @@ serve(async (req) => {
       const body = await req.json();
       const { error } = await supabase.from("activities").insert(body);
       if (error) throw error;
+      // Create notification
+      await supabase.from("notifications").insert({
+        title: "نشاط جديد: " + body.title,
+        message: body.description?.substring(0, 100) || "تم إضافة نشاط جديد",
+        type: "activity",
+        link: "/activities",
+      });
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -71,6 +81,32 @@ serve(async (req) => {
     if (action === "delete-library") {
       const { id } = await req.json();
       const { error } = await supabase.from("library_content").delete().eq("id", id);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "update-volunteer") {
+      const { id, ...updates } = await req.json();
+      const { error } = await supabase.from("volunteers").update(updates).eq("id", id);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "send-admin-reply") {
+      const { sender_id, message } = await req.json();
+      const { error } = await supabase.from("chat_messages").insert({
+        sender_id,
+        message,
+        is_admin: true,
+        receiver_id: sender_id,
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "add-notification") {
+      const body = await req.json();
+      const { error } = await supabase.from("notifications").insert(body);
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
