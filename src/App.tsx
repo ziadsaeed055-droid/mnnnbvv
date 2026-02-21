@@ -32,6 +32,9 @@ import BottomNav from "@/components/BottomNav";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { WelcomeModal } from "@/components/WelcomeModal";
+import { AIChat } from "@/components/AIChat";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +47,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main className="flex-grow pt-20 pb-16 md:pb-0">{children}</main>
       <Footer />
       <BottomNav />
+      <WelcomeModal />
+      <AIChat />
+      <InstallAppButton />
     </div>
   );
 };
