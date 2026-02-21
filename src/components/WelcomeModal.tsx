@@ -60,44 +60,36 @@ export const WelcomeModal = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
-              className="p-8 space-y-4"
+              className="p-8"
             >
-              <div className="text-center">
+              <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-1">
                   أيمن - متخصص التطوير
                 </h2>
                 <p className="text-sm text-purple-600 font-semibold">Developer Specialist</p>
               </div>
 
-              <div className="space-y-3 text-right">
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-1 flex items-center justify-end gap-2">
-                    <span>⚡</span>
-                    <span>المدة الزمنية</span>
-                  </h3>
-                  <p className="text-sm text-gray-600">تم تطوير هذا المشروع على مدار 22 يوماً متواصلاً من التخطيط والبناء والتحسين المستمر</p>
-                </div>
+              <div className="text-right space-y-4">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  مرحباً بك في وحدة مناهضة العنف ضد المرأة بجامعة بني سويف التكنولوجية. أنا أيمن، ومن شرف لي أن أقدم لك هذا المشروع الذي طورته بعناية فائقة على مدار 22 يوماً متواصلاً من العمل الجاد والتخطيط المدقق والبناء المستمر.
+                </p>
 
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-1 flex items-center justify-end gap-2">
-                    <span>🔧</span>
-                    <span>منهجية الهندسة</span>
-                  </h3>
-                  <p className="text-sm text-gray-600">تم بناء المشروع باستخدام معمارية العناصر المعيارية (Modular Architecture)، مما يسمح بسهولة الصيانة والتوسع المستقبلي</p>
-                </div>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  تم بناء هذا التطبيق باستخدام معمارية معيارية حديثة (Modular Architecture)، مما يعني أن كل جزء من المشروع مستقل وسهل الصيانة والتطوير. اعتمدت على أفضل الممارسات الهندسية في تطوير البرمجيات، حيث قمت بتصميم البنية التحتية بحيث تكون قابلة للتوسع والتحسين المستقبلي.
+                </p>
 
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-1 flex items-center justify-end gap-2">
-                    <span>🚀</span>
-                    <span>التكنولوجيا</span>
-                  </h3>
-                  <p className="text-sm text-gray-600">React + TypeScript + Tailwind CSS لواجهة مستخدم حديثة، مع Supabase للتكامل الآمن للبيانات</p>
-                </div>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  من الناحية التقنية، استخدمت أحدث التقنيات: React لواجهة مستخدم حديثة وتفاعلية، TypeScript لضمان سلامة الكود، Tailwind CSS للتصميم الاحترافي، و Supabase كقاعدة بيانات آمنة وموثوقة. أضفت أيضاً دعم تطبيق الويب التقدمي (PWA) ليمكنك تثبيت التطبيق على هاتفك، بالإضافة إلى مستشار الذكاء الاصطناعي للدعم النفسي.
+                </p>
+
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  أتمنى أن يكون هذا التطبيق مفيداً لك ويلبي احتياجاتك. جميع الميزات الموجودة هنا تم تطويرها بتركيز على تجربة المستخدم والأمان والأداء. شكراً لاستخدامك التطبيق!
+                </p>
               </div>
 
               <button
                 onClick={dismissModal}
-                className="w-full mt-6 bg-gradient-to-r from-purple-500 to-pink-400 text-white font-bold py-3 rounded-lg hover:shadow-lg transition-shadow"
+                className="w-full mt-8 bg-gradient-to-r from-purple-500 to-pink-400 text-white font-bold py-3 rounded-lg hover:shadow-lg transition-shadow"
               >
                 ابدأ الآن
               </button>

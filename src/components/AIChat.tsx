@@ -52,9 +52,14 @@ export function AIChat() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
+      console.log('[v0] Starting AI Chat request...');
+      
       if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('[v0] Missing Supabase config:', { supabaseUrl, supabaseAnonKey });
         throw new Error('Supabase configuration missing');
       }
+
+      console.log('[v0] Calling Supabase function at:', `${supabaseUrl}/functions/v1/ai-chat`);
 
       const response = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
         method: 'POST',
@@ -73,8 +78,12 @@ export function AIChat() {
         }),
       });
 
+      console.log('[v0] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('[v0] API error response:', errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
       if (response.body) {

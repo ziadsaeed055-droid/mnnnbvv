@@ -7,24 +7,35 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("[v0] AI Chat Function Called - Method:", req.method);
+  
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { messages } = await req.json();
+    const requestBody = await req.json();
+    console.log("[v0] Request body received:", requestBody);
+    
+    const { messages } = requestBody;
 
     if (!messages || !Array.isArray(messages)) {
+      console.error("[v0] Invalid messages format:", messages);
       return new Response(
         JSON.stringify({ error: "Invalid messages format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("[v0] Messages received:", messages.length);
+
     const groqApiKey = Deno.env.get("GROQ_API_KEY");
     if (!groqApiKey) {
+      console.error("[v0] GROQ_API_KEY is not set in environment");
       throw new Error("GROQ_API_KEY is not set");
     }
+    
+    console.log("[v0] GROQ API Key found, making request...");
 
     const systemPrompt = `أنت مستشار نفسي متعاطف وداعم متخصص في دعم ضحايا العنف.
 You are an empathetic and supportive psychological counselor specializing in supporting violence victims.
@@ -61,8 +72,12 @@ Be professional but warm, and do not attempt diagnosis or prescription of medica
     });
 
     if (!groqResponse.ok) {
-      throw new Error(`Groq API error: ${groqResponse.status}`);
+      const errorBody = await groqResponse.text();
+      console.error("[v0] Groq API error:", groqResponse.status, errorBody);
+      throw new Error(`Groq API error: ${groqResponse.status} - ${errorBody}`);
     }
+
+    console.log("[v0] Groq API response received, streaming...");
 
     // Stream the response
     return new Response(
@@ -116,9 +131,10 @@ Be professional but warm, and do not attempt diagnosis or prescription of medica
       }
     );
   } catch (error) {
-    console.error("AI Chat Error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[v0] AI Chat Error:", errorMessage);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
