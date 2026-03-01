@@ -8,9 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, FileText, AlertCircle, CheckCircle, Plus, Trash2, Heart, Upload, Image, Video, BookOpen, Send, Bell, User } from "lucide-react";
+import { Users, FileText, AlertCircle, CheckCircle, Plus, Trash2, Heart, Upload, Image, Video, BookOpen, Send, Bell, User, ShieldCheck, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole, roleLabels, rolePermissions, type AppRole } from "@/hooks/useUserRole";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
@@ -59,6 +63,10 @@ const callDashboardApi = async (action: string, body?: any) => {
 };
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const { role, loading: roleLoading, hasPermission, canAccessDashboard } = useUserRole();
+  const navigate = useNavigate();
+
   const [reports, setReports] = useState<any[]>([]);
   const [volunteers, setVolunteers] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -67,6 +75,7 @@ const Dashboard = () => {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [userRoles, setUserRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Activity form
@@ -91,8 +100,6 @@ const Dashboard = () => {
   const libPdfRef = useRef<HTMLInputElement>(null);
   const libInfographicRef = useRef<HTMLInputElement>(null);
 
-  // Volunteer detail
-
   // Chat
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [adminReply, setAdminReply] = useState("");
@@ -101,17 +108,26 @@ const Dashboard = () => {
   const [notifDialog, setNotifDialog] = useState(false);
   const [notifForm, setNotifForm] = useState({ title: "", message: "", type: "general", link: "" });
 
+  // Role management
+  const [roleDialog, setRoleDialog] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedRole, setSelectedRole] = useState<string>("user");
+
   const fetchAll = async () => {
     try {
-      const data = await callDashboardApi("fetch");
-      setReports(data.reports || []);
-      setVolunteers(data.volunteers || []);
-      setActivities(data.activities || []);
-      setLibraryItems(data.library || []);
-      setDonations(data.donations || []);
-      setSurveys(data.surveys || []);
-      setProfiles(data.profiles || []);
-      setChatMessages(data.chatMessages || []);
+      const [dashData, rolesData] = await Promise.all([
+        callDashboardApi("fetch"),
+        supabase.from("user_roles").select("*"),
+      ]);
+      setReports(dashData.reports || []);
+      setVolunteers(dashData.volunteers || []);
+      setActivities(dashData.activities || []);
+      setLibraryItems(dashData.library || []);
+      setDonations(dashData.donations || []);
+      setSurveys(dashData.surveys || []);
+      setProfiles(dashData.profiles || []);
+      setChatMessages(dashData.chatMessages || []);
+      setUserRoles((rolesData.data as any[]) || []);
     } catch (e: any) {
       toast.error("خطأ في تحميل البيانات: " + e.message);
     }
@@ -119,6 +135,44 @@ const Dashboard = () => {
   };
 
   useEffect(() => { fetchAll(); }, []);
+
+  // Check access
+  if (roleLoading) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">جاري التحقق من الصلاحيات...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-md mx-auto space-y-6">
+          <div className="w-20 h-20 bg-accent rounded-2xl flex items-center justify-center mx-auto"><Lock className="h-10 w-10 text-primary" /></div>
+          <h2 className="text-2xl font-bold text-foreground">تسجيل الدخول مطلوب</h2>
+          <p className="text-muted-foreground">يجب تسجيل الدخول للوصول إلى لوحة التحكم</p>
+          <Button onClick={() => navigate("/auth")} className="bg-gradient-brand">تسجيل الدخول</Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!canAccessDashboard) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-md mx-auto space-y-6">
+          <div className="w-20 h-20 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto"><ShieldCheck className="h-10 w-10 text-destructive" /></div>
+          <h2 className="text-2xl font-bold text-foreground">ليس لديك صلاحية</h2>
+          <p className="text-muted-foreground">عذراً، ليس لديك الصلاحية للوصول إلى لوحة التحكم. تواصل مع المدير لمنحك الصلاحية المناسبة.</p>
+          <Button onClick={() => navigate("/")} variant="outline">العودة للرئيسية</Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   const updateReportStatus = async (id: string, status: string) => {
     try {
@@ -230,6 +284,22 @@ const Dashboard = () => {
     } catch { toast.error("خطأ"); }
   };
 
+  const assignRole = async () => {
+    if (!selectedUserId || !selectedRole) { toast.error("يرجى اختيار المستخدم والصلاحية"); return; }
+    try {
+      // Delete existing role first
+      await supabase.from("user_roles").delete().eq("user_id", selectedUserId);
+      if (selectedRole !== "remove") {
+        await supabase.from("user_roles").insert({ user_id: selectedUserId, role: selectedRole } as any);
+      }
+      toast.success("تم تحديث الصلاحية");
+      setRoleDialog(false);
+      setSelectedUserId("");
+      setSelectedRole("user");
+      fetchAll();
+    } catch (e: any) { toast.error("خطأ: " + e.message); }
+  };
+
   const safetyIndex = surveys.length > 0 ? Math.round((surveys.filter((s: any) => s.feels_safe).length / surveys.length) * 100) : 0;
   const totalDonations = donations.reduce((sum: number, d: any) => sum + Number(d.amount), 0);
 
@@ -237,42 +307,58 @@ const Dashboard = () => {
   const chatSenders = [...new Set(chatMessages.filter((m: any) => !m.is_admin).map((m: any) => m.sender_id))];
   const getProfileByUserId = (uid: string) => profiles.find((p: any) => p.user_id === uid);
   const getChatForUser = (uid: string) => chatMessages.filter((m: any) => m.sender_id === uid || (m.is_admin && m.receiver_id === uid));
+  const getUserRole = (uid: string) => userRoles.find((r: any) => r.user_id === uid);
+
+  // Determine visible tabs based on permissions
+  const tabs = [
+    { id: "reports", label: "البلاغات", perm: "manage_reports" },
+    { id: "volunteers", label: "المتطوعين", perm: "manage_volunteers" },
+    { id: "activities", label: "الأنشطة", perm: "manage_activities" },
+    { id: "library", label: "المكتبة", perm: "manage_library" },
+    { id: "users", label: "المستخدمين", perm: "manage_users" },
+    { id: "roles", label: "الصلاحيات", perm: "manage_roles" },
+    { id: "chat", label: "المراسلات", perm: "manage_chat" },
+    { id: "donations", label: "التبرعات", perm: "manage_donations" },
+    { id: "surveys", label: "الاستبيانات", perm: "manage_surveys" },
+  ].filter(t => hasPermission(t.perm) || (t.id === "users" && hasPermission("manage_reports")) || (t.id !== "roles" && role === "viewer"));
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
-          <p className="text-muted-foreground">نظرة عامة على نشاط الوحدة والإحصائيات</p>
+          <p className="text-muted-foreground">مرحباً، صلاحيتك: <Badge variant="outline">{roleLabels[role as AppRole] || role}</Badge></p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={notifDialog} onOpenChange={setNotifDialog}>
-            <DialogTrigger asChild><Button size="sm" variant="outline"><Bell className="ml-1 h-4 w-4" /> إشعار جديد</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>إرسال إشعار للمستخدمين</DialogTitle></DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="space-y-2"><Label>العنوان *</Label><Input value={notifForm.title} onChange={e => setNotifForm({ ...notifForm, title: e.target.value })} placeholder="عنوان الإشعار" /></div>
-                <div className="space-y-2"><Label>الرسالة *</Label><Textarea value={notifForm.message} onChange={e => setNotifForm({ ...notifForm, message: e.target.value })} placeholder="نص الإشعار..." /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>النوع</Label>
-                    <Select value={notifForm.type} onValueChange={v => setNotifForm({ ...notifForm, type: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="general">عام</SelectItem>
-                        <SelectItem value="activity">نشاط</SelectItem>
-                        <SelectItem value="volunteer">تطوع</SelectItem>
-                        <SelectItem value="campaign">حملة</SelectItem>
-                      </SelectContent>
-                    </Select>
+          {hasPermission("manage_notifications") && (
+            <Dialog open={notifDialog} onOpenChange={setNotifDialog}>
+              <DialogTrigger asChild><Button size="sm" variant="outline"><Bell className="ml-1 h-4 w-4" /> إشعار جديد</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>إرسال إشعار للمستخدمين</DialogTitle></DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2"><Label>العنوان *</Label><Input value={notifForm.title} onChange={e => setNotifForm({ ...notifForm, title: e.target.value })} placeholder="عنوان الإشعار" /></div>
+                  <div className="space-y-2"><Label>الرسالة *</Label><Textarea value={notifForm.message} onChange={e => setNotifForm({ ...notifForm, message: e.target.value })} placeholder="نص الإشعار..." /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><Label>النوع</Label>
+                      <Select value={notifForm.type} onValueChange={v => setNotifForm({ ...notifForm, type: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="general">عام</SelectItem>
+                          <SelectItem value="activity">نشاط</SelectItem>
+                          <SelectItem value="volunteer">تطوع</SelectItem>
+                          <SelectItem value="campaign">حملة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2"><Label>الرابط (اختياري)</Label><Input value={notifForm.link} onChange={e => setNotifForm({ ...notifForm, link: e.target.value })} placeholder="/activities" /></div>
                   </div>
-                  <div className="space-y-2"><Label>الرابط (اختياري)</Label><Input value={notifForm.link} onChange={e => setNotifForm({ ...notifForm, link: e.target.value })} placeholder="/activities" /></div>
+                  <Button onClick={addNotification} className="w-full bg-gradient-brand">إرسال الإشعار</Button>
                 </div>
-                <Button onClick={addNotification} className="w-full bg-gradient-brand">إرسال الإشعار</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
-      </div>
+      </motion.div>
 
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
@@ -291,16 +377,9 @@ const Dashboard = () => {
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">التبرعات</CardTitle><Heart className="h-4 w-4 text-secondary" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalDonations} ج.م</div></CardContent></Card>
           </div>
 
-          <Tabs defaultValue="reports" className="space-y-4">
+          <Tabs defaultValue={tabs[0]?.id || "reports"} className="space-y-4">
             <TabsList className="flex-wrap">
-              <TabsTrigger value="reports">البلاغات</TabsTrigger>
-              <TabsTrigger value="volunteers">المتطوعين</TabsTrigger>
-              <TabsTrigger value="activities">الأنشطة</TabsTrigger>
-              <TabsTrigger value="library">المكتبة</TabsTrigger>
-              <TabsTrigger value="users">المستخدمين</TabsTrigger>
-              <TabsTrigger value="chat">المراسلات</TabsTrigger>
-              <TabsTrigger value="donations">التبرعات</TabsTrigger>
-              <TabsTrigger value="surveys">الاستبيانات</TabsTrigger>
+              {tabs.map(t => <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>)}
             </TabsList>
 
             {/* Reports Tab */}
@@ -315,17 +394,19 @@ const Dashboard = () => {
                           <div className="flex justify-between items-start flex-wrap gap-2">
                             <div>
                               <p className="font-bold text-foreground">{r.is_anonymous ? "بلاغ مجهول" : r.reporter_name || "بدون اسم"}</p>
-                              <p className="text-sm text-muted-foreground">الكلية: {r.college} • {new Date(r.created_at).toLocaleDateString("ar-EG")}</p>
+                              <p className="text-sm text-muted-foreground">الكلية: {collegeLabels[r.college] || r.college} • {new Date(r.created_at).toLocaleDateString("ar-EG")}</p>
                             </div>
                             <Badge className={statusColors[r.status] || ""}>{statusLabels[r.status] || r.status}</Badge>
                           </div>
                           <p className="text-sm text-foreground">{r.description}</p>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground"><span>وسيلة تواصل: {r.contact_info}</span></div>
-                          <div className="flex gap-2 flex-wrap">
-                            {["pending", "investigating", "resolved", "closed"].map((s) => (
-                              <Button key={s} size="sm" variant={r.status === s ? "default" : "outline"} onClick={() => updateReportStatus(r.id, s)} className="text-xs">{statusLabels[s]}</Button>
-                            ))}
-                          </div>
+                          {hasPermission("manage_reports") && (
+                            <div className="flex gap-2 flex-wrap">
+                              {["pending", "investigating", "resolved", "closed"].map((s) => (
+                                <Button key={s} size="sm" variant={r.status === s ? "default" : "outline"} onClick={() => updateReportStatus(r.id, s)} className="text-xs">{statusLabels[s]}</Button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -375,7 +456,7 @@ const Dashboard = () => {
                               <Badge className={v.status === "approved" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
                                 {v.status === "approved" ? "مقبول" : "قيد المراجعة"}
                               </Badge>
-                              {v.status !== "approved" && (
+                              {v.status !== "approved" && hasPermission("manage_volunteers") && (
                                 <Button size="sm" onClick={() => approveVolunteer(v.id)} className="bg-green-600 hover:bg-green-700 text-white text-xs">قبول</Button>
                               )}
                             </div>
@@ -393,73 +474,75 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>الأنشطة والفعاليات ({activities.length})</CardTitle>
-                  <Dialog open={actDialog} onOpenChange={setActDialog}>
-                    <DialogTrigger asChild><Button size="sm"><Plus className="ml-1 h-4 w-4" /> إضافة نشاط</Button></DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>إضافة نشاط جديد</DialogTitle>
-                        <DialogDescription>أضف نشاطاً أو فعالية جديدة</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 mt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2"><Label>العنوان *</Label><Input value={actForm.title} onChange={e => setActForm({ ...actForm, title: e.target.value })} placeholder="اسم النشاط" /></div>
-                          <div className="space-y-2"><Label>نوع النشاط</Label>
-                            <Select value={actForm.type} onValueChange={v => setActForm({ ...actForm, type: v })}>
+                  {hasPermission("manage_activities") && (
+                    <Dialog open={actDialog} onOpenChange={setActDialog}>
+                      <DialogTrigger asChild><Button size="sm"><Plus className="ml-1 h-4 w-4" /> إضافة نشاط</Button></DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>إضافة نشاط جديد</DialogTitle>
+                          <DialogDescription>أضف نشاطاً أو فعالية جديدة</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label>العنوان *</Label><Input value={actForm.title} onChange={e => setActForm({ ...actForm, title: e.target.value })} placeholder="اسم النشاط" /></div>
+                            <div className="space-y-2"><Label>نوع النشاط</Label>
+                              <Select value={actForm.type} onValueChange={v => setActForm({ ...actForm, type: v })}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="seminar">ندوة</SelectItem>
+                                  <SelectItem value="workshop">ورشة عمل</SelectItem>
+                                  <SelectItem value="campaign">حملة توعوية</SelectItem>
+                                  <SelectItem value="training">تدريب</SelectItem>
+                                  <SelectItem value="conference">مؤتمر</SelectItem>
+                                  <SelectItem value="other">أخرى</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="space-y-2"><Label>الوصف *</Label><Textarea value={actForm.description} onChange={e => setActForm({ ...actForm, description: e.target.value })} className="min-h-[100px]" placeholder="وصف تفصيلي..." /></div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label>المكان</Label><Input value={actForm.location} onChange={e => setActForm({ ...actForm, location: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>التاريخ</Label><Input type="datetime-local" value={actForm.date} onChange={e => setActForm({ ...actForm, date: e.target.value })} /></div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label>المنظم</Label><Input value={actForm.organizer} onChange={e => setActForm({ ...actForm, organizer: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>الفئة المستهدفة</Label><Input value={actForm.target_audience} onChange={e => setActForm({ ...actForm, target_audience: e.target.value })} /></div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label>الحد الأقصى للحضور</Label><Input type="number" value={actForm.max_attendees} onChange={e => setActForm({ ...actForm, max_attendees: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>وسيلة التواصل</Label><Input value={actForm.contact_info} onChange={e => setActForm({ ...actForm, contact_info: e.target.value })} /></div>
+                          </div>
+                          <div className="space-y-2"><Label>الحالة</Label>
+                            <Select value={actForm.status} onValueChange={v => setActForm({ ...actForm, status: v })}>
                               <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="seminar">ندوة</SelectItem>
-                                <SelectItem value="workshop">ورشة عمل</SelectItem>
-                                <SelectItem value="campaign">حملة توعوية</SelectItem>
-                                <SelectItem value="training">تدريب</SelectItem>
-                                <SelectItem value="conference">مؤتمر</SelectItem>
-                                <SelectItem value="other">أخرى</SelectItem>
+                                <SelectItem value="upcoming">قادم</SelectItem>
+                                <SelectItem value="ongoing">جاري</SelectItem>
+                                <SelectItem value="completed">منتهي</SelectItem>
+                                <SelectItem value="cancelled">ملغي</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
-                        </div>
-                        <div className="space-y-2"><Label>الوصف *</Label><Textarea value={actForm.description} onChange={e => setActForm({ ...actForm, description: e.target.value })} className="min-h-[100px]" placeholder="وصف تفصيلي..." /></div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2"><Label>المكان</Label><Input value={actForm.location} onChange={e => setActForm({ ...actForm, location: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>التاريخ</Label><Input type="datetime-local" value={actForm.date} onChange={e => setActForm({ ...actForm, date: e.target.value })} /></div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2"><Label>المنظم</Label><Input value={actForm.organizer} onChange={e => setActForm({ ...actForm, organizer: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>الفئة المستهدفة</Label><Input value={actForm.target_audience} onChange={e => setActForm({ ...actForm, target_audience: e.target.value })} /></div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2"><Label>الحد الأقصى للحضور</Label><Input type="number" value={actForm.max_attendees} onChange={e => setActForm({ ...actForm, max_attendees: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>وسيلة التواصل</Label><Input value={actForm.contact_info} onChange={e => setActForm({ ...actForm, contact_info: e.target.value })} /></div>
-                        </div>
-                        <div className="space-y-2"><Label>الحالة</Label>
-                          <Select value={actForm.status} onValueChange={v => setActForm({ ...actForm, status: v })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="upcoming">قادم</SelectItem>
-                              <SelectItem value="ongoing">جاري</SelectItem>
-                              <SelectItem value="completed">منتهي</SelectItem>
-                              <SelectItem value="cancelled">ملغي</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2"><Label>ملاحظات</Label><Textarea value={actForm.notes} onChange={e => setActForm({ ...actForm, notes: e.target.value })} /></div>
-                        <div className="space-y-2">
-                          <Label>صورة النشاط</Label>
-                          <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => actImageRef.current?.click()}>
-                            {actImage ? (
-                              <div className="space-y-2">
-                                <img src={URL.createObjectURL(actImage)} alt="preview" className="w-32 h-32 object-cover rounded-lg mx-auto" />
-                                <p className="text-sm text-muted-foreground">{actImage.name}</p>
-                              </div>
-                            ) : (
-                              <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm font-medium text-foreground">اضغط لرفع صورة</p></>
-                            )}
+                          <div className="space-y-2"><Label>ملاحظات</Label><Textarea value={actForm.notes} onChange={e => setActForm({ ...actForm, notes: e.target.value })} /></div>
+                          <div className="space-y-2">
+                            <Label>صورة النشاط</Label>
+                            <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => actImageRef.current?.click()}>
+                              {actImage ? (
+                                <div className="space-y-2">
+                                  <img src={URL.createObjectURL(actImage)} alt="preview" className="w-32 h-32 object-cover rounded-lg mx-auto" />
+                                  <p className="text-sm text-muted-foreground">{actImage.name}</p>
+                                </div>
+                              ) : (
+                                <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm font-medium text-foreground">اضغط لرفع صورة</p></>
+                              )}
+                            </div>
+                            <input ref={actImageRef} type="file" accept="image/*" className="hidden" onChange={e => setActImage(e.target.files?.[0] || null)} />
                           </div>
-                          <input ref={actImageRef} type="file" accept="image/*" className="hidden" onChange={e => setActImage(e.target.files?.[0] || null)} />
+                          <Button onClick={addActivity} className="w-full bg-gradient-brand" disabled={actUploading}>{actUploading ? "جاري الرفع..." : "إضافة النشاط"}</Button>
                         </div>
-                        <Button onClick={addActivity} className="w-full bg-gradient-brand" disabled={actUploading}>{actUploading ? "جاري الرفع..." : "إضافة النشاط"}</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {activities.length === 0 ? <p className="text-center py-10 text-muted-foreground">لا توجد أنشطة</p> : (
@@ -477,7 +560,7 @@ const Dashboard = () => {
                               </p>
                             </div>
                           </div>
-                          <Button size="icon" variant="ghost" className="text-destructive shrink-0" onClick={() => deleteActivity(a.id)}><Trash2 className="h-4 w-4" /></Button>
+                          {hasPermission("manage_activities") && <Button size="icon" variant="ghost" className="text-destructive shrink-0" onClick={() => deleteActivity(a.id)}><Trash2 className="h-4 w-4" /></Button>}
                         </div>
                       ))}
                     </div>
@@ -491,96 +574,91 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
                   <CardTitle>المكتبة التوعوية ({libraryItems.length})</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
-                    {/* Article Dialog */}
-                    <Dialog open={articleDialog} onOpenChange={setArticleDialog}>
-                      <DialogTrigger asChild><Button size="sm" variant="outline"><BookOpen className="ml-1 h-4 w-4" /> مقال</Button></DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader><DialogTitle>إضافة مقال جديد</DialogTitle></DialogHeader>
-                        <div className="space-y-4 mt-4">
-                          <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>وصف مختصر</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} className="min-h-[60px]" /></div>
-                          <div className="space-y-2"><Label>محتوى المقال الكامل *</Label><Textarea value={libForm.content} onChange={e => setLibForm({ ...libForm, content: e.target.value })} className="min-h-[250px]" placeholder="اكتب المقال كاملاً هنا..." /></div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label>التصنيف</Label><Input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} placeholder="حقوق، أمان رقمي..." /></div>
-                            <div className="space-y-2"><Label>وقت القراءة</Label><Input value={libForm.read_time} onChange={e => setLibForm({ ...libForm, read_time: e.target.value })} placeholder="5 دقائق" /></div>
+                  {hasPermission("manage_library") && (
+                    <div className="flex gap-2 flex-wrap">
+                      <Dialog open={articleDialog} onOpenChange={setArticleDialog}>
+                        <DialogTrigger asChild><Button size="sm" variant="outline"><BookOpen className="ml-1 h-4 w-4" /> مقال</Button></DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader><DialogTitle>إضافة مقال جديد</DialogTitle></DialogHeader>
+                          <div className="space-y-4 mt-4">
+                            <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>وصف مختصر</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} className="min-h-[60px]" /></div>
+                            <div className="space-y-2"><Label>محتوى المقال الكامل *</Label><Textarea value={libForm.content} onChange={e => setLibForm({ ...libForm, content: e.target.value })} className="min-h-[250px]" placeholder="اكتب المقال كاملاً هنا..." /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2"><Label>التصنيف</Label><Input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} placeholder="حقوق، أمان رقمي..." /></div>
+                              <div className="space-y-2"><Label>وقت القراءة</Label><Input value={libForm.read_time} onChange={e => setLibForm({ ...libForm, read_time: e.target.value })} placeholder="5 دقائق" /></div>
+                            </div>
+                            <Button onClick={() => addLibraryItem("article")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الإضافة..." : "إضافة المقال"}</Button>
                           </div>
-                          <Button onClick={() => addLibraryItem("article")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الإضافة..." : "إضافة المقال"}</Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Video Dialog */}
-                    <Dialog open={videoDialog} onOpenChange={setVideoDialog}>
-                      <DialogTrigger asChild><Button size="sm" variant="outline"><Video className="ml-1 h-4 w-4" /> فيديو</Button></DialogTrigger>
-                      <DialogContent className="max-w-lg">
-                        <DialogHeader><DialogTitle>إضافة فيديو جديد</DialogTitle></DialogHeader>
-                        <div className="space-y-4 mt-4">
-                          <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>الوصف</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} /></div>
-                          <div className="grid grid-cols-2 gap-4">
+                        </DialogContent>
+                      </Dialog>
+                      <Dialog open={videoDialog} onOpenChange={setVideoDialog}>
+                        <DialogTrigger asChild><Button size="sm" variant="outline"><Video className="ml-1 h-4 w-4" /> فيديو</Button></DialogTrigger>
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader><DialogTitle>إضافة فيديو جديد</DialogTitle></DialogHeader>
+                          <div className="space-y-4 mt-4">
+                            <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>الوصف</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2"><Label>التصنيف</Label><Input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} /></div>
+                              <div className="space-y-2"><Label>المدة</Label><Input value={libForm.duration} onChange={e => setLibForm({ ...libForm, duration: e.target.value })} placeholder="10:30" /></div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>رفع الفيديو</Label>
+                              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => libVideoRef.current?.click()}>
+                                {libVideo ? <p className="text-sm text-primary font-medium">✅ {libVideo.name}</p> : <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm">اضغط لرفع الفيديو</p></>}
+                              </div>
+                              <input ref={libVideoRef} type="file" accept="video/*" className="hidden" onChange={e => setLibVideo(e.target.files?.[0] || null)} />
+                            </div>
+                            <Button onClick={() => addLibraryItem("video")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الرفع..." : "إضافة الفيديو"}</Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <Dialog open={pdfDialog} onOpenChange={setPdfDialog}>
+                        <DialogTrigger asChild><Button size="sm" variant="outline"><FileText className="ml-1 h-4 w-4" /> PDF</Button></DialogTrigger>
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader><DialogTitle>إضافة ملف PDF</DialogTitle></DialogHeader>
+                          <div className="space-y-4 mt-4">
+                            <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>الوصف</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} /></div>
                             <div className="space-y-2"><Label>التصنيف</Label><Input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} /></div>
-                            <div className="space-y-2"><Label>المدة</Label><Input value={libForm.duration} onChange={e => setLibForm({ ...libForm, duration: e.target.value })} placeholder="10:30" /></div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>رفع الفيديو</Label>
-                            <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => libVideoRef.current?.click()}>
-                              {libVideo ? <p className="text-sm text-primary font-medium">✅ {libVideo.name}</p> : <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm">اضغط لرفع الفيديو</p></>}
+                            <div className="space-y-2">
+                              <Label>رفع ملف PDF</Label>
+                              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => libPdfRef.current?.click()}>
+                                {libPdf ? <p className="text-sm text-primary font-medium">✅ {libPdf.name}</p> : <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm">اضغط لرفع ملف PDF</p></>}
+                              </div>
+                              <input ref={libPdfRef} type="file" accept=".pdf" className="hidden" onChange={e => setLibPdf(e.target.files?.[0] || null)} />
                             </div>
-                            <input ref={libVideoRef} type="file" accept="video/*" className="hidden" onChange={e => setLibVideo(e.target.files?.[0] || null)} />
+                            <Button onClick={() => addLibraryItem("pdf")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الرفع..." : "إضافة الملف"}</Button>
                           </div>
-                          <Button onClick={() => addLibraryItem("video")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الرفع..." : "إضافة الفيديو"}</Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* PDF Dialog */}
-                    <Dialog open={pdfDialog} onOpenChange={setPdfDialog}>
-                      <DialogTrigger asChild><Button size="sm" variant="outline"><FileText className="ml-1 h-4 w-4" /> PDF</Button></DialogTrigger>
-                      <DialogContent className="max-w-lg">
-                        <DialogHeader><DialogTitle>إضافة ملف PDF</DialogTitle></DialogHeader>
-                        <div className="space-y-4 mt-4">
-                          <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>الوصف</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>التصنيف</Label><Input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} /></div>
-                          <div className="space-y-2">
-                            <Label>رفع ملف PDF</Label>
-                            <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => libPdfRef.current?.click()}>
-                              {libPdf ? <p className="text-sm text-primary font-medium">✅ {libPdf.name}</p> : <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm">اضغط لرفع ملف PDF</p></>}
+                        </DialogContent>
+                      </Dialog>
+                      <Dialog open={infographicDialog} onOpenChange={setInfographicDialog}>
+                        <DialogTrigger asChild><Button size="sm" variant="outline"><Image className="ml-1 h-4 w-4" /> إنفوجرافيك</Button></DialogTrigger>
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader><DialogTitle>إضافة إنفوجرافيك</DialogTitle></DialogHeader>
+                          <div className="space-y-4 mt-4">
+                            <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>الوصف</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} /></div>
+                            <div className="space-y-2"><Label>التصنيف</Label><Input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} /></div>
+                            <div className="space-y-2">
+                              <Label>رفع الصورة</Label>
+                              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => libInfographicRef.current?.click()}>
+                                {libInfographic ? (
+                                  <div className="space-y-2">
+                                    <img src={URL.createObjectURL(libInfographic)} alt="preview" className="w-32 h-32 object-cover rounded-lg mx-auto" />
+                                    <p className="text-sm text-muted-foreground">{libInfographic.name}</p>
+                                  </div>
+                                ) : <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm">اضغط لرفع صورة الإنفوجرافيك</p></>}
+                              </div>
+                              <input ref={libInfographicRef} type="file" accept="image/*" className="hidden" onChange={e => setLibInfographic(e.target.files?.[0] || null)} />
                             </div>
-                            <input ref={libPdfRef} type="file" accept=".pdf" className="hidden" onChange={e => setLibPdf(e.target.files?.[0] || null)} />
+                            <Button onClick={() => addLibraryItem("infographic")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الرفع..." : "إضافة الإنفوجرافيك"}</Button>
                           </div>
-                          <Button onClick={() => addLibraryItem("pdf")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الرفع..." : "إضافة الملف"}</Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Infographic Dialog */}
-                    <Dialog open={infographicDialog} onOpenChange={setInfographicDialog}>
-                      <DialogTrigger asChild><Button size="sm" variant="outline"><Image className="ml-1 h-4 w-4" /> إنفوجرافيك</Button></DialogTrigger>
-                      <DialogContent className="max-w-lg">
-                        <DialogHeader><DialogTitle>إضافة إنفوجرافيك</DialogTitle></DialogHeader>
-                        <div className="space-y-4 mt-4">
-                          <div className="space-y-2"><Label>العنوان *</Label><Input value={libForm.title} onChange={e => setLibForm({ ...libForm, title: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>الوصف</Label><Textarea value={libForm.description} onChange={e => setLibForm({ ...libForm, description: e.target.value })} /></div>
-                          <div className="space-y-2"><Label>التصنيف</Label><Input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} /></div>
-                          <div className="space-y-2">
-                            <Label>رفع الصورة</Label>
-                            <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => libInfographicRef.current?.click()}>
-                              {libInfographic ? (
-                                <div className="space-y-2">
-                                  <img src={URL.createObjectURL(libInfographic)} alt="preview" className="w-32 h-32 object-cover rounded-lg mx-auto" />
-                                  <p className="text-sm text-muted-foreground">{libInfographic.name}</p>
-                                </div>
-                              ) : <><Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm">اضغط لرفع صورة الإنفوجرافيك</p></>}
-                            </div>
-                            <input ref={libInfographicRef} type="file" accept="image/*" className="hidden" onChange={e => setLibInfographic(e.target.files?.[0] || null)} />
-                          </div>
-                          <Button onClick={() => addLibraryItem("infographic")} className="w-full bg-gradient-brand" disabled={libUploading}>{libUploading ? "جاري الرفع..." : "إضافة الإنفوجرافيك"}</Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {libraryItems.length === 0 ? <p className="text-center py-10 text-muted-foreground">لا يوجد محتوى</p> : (
@@ -597,7 +675,7 @@ const Dashboard = () => {
                             <p className="font-bold text-foreground">{item.title}</p>
                             {item.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{item.description}</p>}
                           </div>
-                          <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteLibraryItem(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                          {hasPermission("manage_library") && <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteLibraryItem(item.id)}><Trash2 className="h-4 w-4" /></Button>}
                         </div>
                       ))}
                     </div>
@@ -613,28 +691,123 @@ const Dashboard = () => {
                 <CardContent>
                   {profiles.length === 0 ? <p className="text-center py-10 text-muted-foreground">لا يوجد مستخدمون</p> : (
                     <div className="space-y-3">
-                      {profiles.map((p: any) => (
-                        <div key={p.id} className="border border-border rounded-xl p-4 flex items-center gap-4">
-                          {(p as any).avatar_url ? (
-                            <img src={(p as any).avatar_url} alt={p.full_name} className="w-12 h-12 rounded-full object-cover border border-border" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center"><User className="h-6 w-6 text-primary" /></div>
-                          )}
-                          <div className="flex-1">
-                            <p className="font-bold text-foreground">{p.full_name || "بدون اسم"}</p>
-                            <p className="text-sm text-muted-foreground">{p.email}</p>
-                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-1">
-                              {p.college && <span>🎓 {collegeLabels[p.college] || p.college}</span>}
-                              {(p as any).department && <span>📚 {deptLabels[(p as any).department] || (p as any).department}</span>}
-                              {p.phone && <span>📞 {p.phone}</span>}
-                              <span>📅 {new Date(p.created_at).toLocaleDateString("ar-EG")}</span>
+                      {profiles.map((p: any) => {
+                        const ur = getUserRole(p.user_id);
+                        return (
+                          <div key={p.id} className="border border-border rounded-xl p-4 flex items-center gap-4">
+                            {p.avatar_url ? (
+                              <img src={p.avatar_url} alt={p.full_name} className="w-12 h-12 rounded-full object-cover border border-border" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center"><User className="h-6 w-6 text-primary" /></div>
+                            )}
+                            <div className="flex-1">
+                              <p className="font-bold text-foreground">{p.full_name || "بدون اسم"}</p>
+                              <p className="text-sm text-muted-foreground">{p.email}</p>
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-1">
+                                {p.college && <span>🎓 {collegeLabels[p.college] || p.college}</span>}
+                                {p.department && <span>📚 {deptLabels[p.department] || p.department}</span>}
+                                {p.phone && <span>📞 {p.phone}</span>}
+                                <span>📅 {new Date(p.created_at).toLocaleDateString("ar-EG")}</span>
+                              </div>
                             </div>
+                            <Badge variant="outline" className="text-xs">
+                              {ur ? roleLabels[ur.role as AppRole] || ur.role : "مستخدم"}
+                            </Badge>
                           </div>
-                          <Badge variant="outline" className="text-xs">{p.role || "user"}</Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Roles Tab */}
+            <TabsContent value="roles">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>إدارة الصلاحيات</CardTitle>
+                    <CardDescription>تعيين وتعديل صلاحيات المستخدمين</CardDescription>
+                  </div>
+                  <Dialog open={roleDialog} onOpenChange={setRoleDialog}>
+                    <DialogTrigger asChild><Button size="sm"><ShieldCheck className="ml-1 h-4 w-4" /> تعيين صلاحية</Button></DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>تعيين صلاحية لمستخدم</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label>اختر المستخدم</Label>
+                          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                            <SelectTrigger><SelectValue placeholder="اختر مستخدم" /></SelectTrigger>
+                            <SelectContent>
+                              {profiles.map((p: any) => (
+                                <SelectItem key={p.user_id} value={p.user_id}>{p.full_name || p.email} ({p.email})</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>الصلاحية</Label>
+                          <Select value={selectedRole} onValueChange={setSelectedRole}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="super_admin">مدير عام (كل الصلاحيات)</SelectItem>
+                              <SelectItem value="admin">مدير (إدارة كل الأقسام)</SelectItem>
+                              <SelectItem value="moderator">مشرف (البلاغات، الأنشطة، المراسلات)</SelectItem>
+                              <SelectItem value="editor">محرر (الأنشطة، المكتبة)</SelectItem>
+                              <SelectItem value="viewer">مشاهد (عرض فقط)</SelectItem>
+                              <SelectItem value="remove">إزالة الصلاحية</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="bg-accent/50 rounded-xl p-4">
+                          <p className="text-sm font-bold text-foreground mb-2">صلاحيات الدور المختار:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedRole && selectedRole !== "remove" && (rolePermissions[selectedRole as AppRole] || []).map(p => (
+                              <Badge key={p} variant="secondary" className="text-xs">{p === "all" ? "كل الصلاحيات" : p.replace("manage_", "إدارة ")}</Badge>
+                            ))}
+                            {selectedRole === "remove" && <Badge variant="destructive" className="text-xs">سيتم إزالة جميع الصلاحيات</Badge>}
+                          </div>
+                        </div>
+                        <Button onClick={assignRole} className="w-full bg-gradient-brand">تطبيق الصلاحية</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Role hierarchy explanation */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                      {(Object.entries(roleLabels) as [AppRole, string][]).filter(([k]) => k !== "user").map(([key, label]) => (
+                        <div key={key} className="bg-accent/30 rounded-xl p-4 border border-border">
+                          <p className="font-bold text-foreground text-sm mb-1">{label}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {rolePermissions[key].slice(0, 4).map(p => (
+                              <span key={p} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{p === "all" ? "الكل" : p.replace("manage_", "")}</span>
+                            ))}
+                          </div>
                         </div>
                       ))}
                     </div>
-                  )}
+                    {/* Current roles list */}
+                    <h4 className="font-bold text-foreground">المستخدمون ذوو صلاحيات ({userRoles.length})</h4>
+                    {userRoles.length === 0 ? <p className="text-muted-foreground text-sm py-4 text-center">لا توجد صلاحيات معينة بعد</p> : (
+                      <div className="space-y-2">
+                        {userRoles.map((ur: any) => {
+                          const prof = getProfileByUserId(ur.user_id);
+                          return (
+                            <div key={ur.id} className="flex items-center justify-between border border-border rounded-xl p-3">
+                              <div>
+                                <p className="font-bold text-foreground text-sm">{prof?.full_name || "مستخدم"}</p>
+                                <p className="text-xs text-muted-foreground">{prof?.email}</p>
+                              </div>
+                              <Badge className="bg-primary/10 text-primary">{roleLabels[ur.role as AppRole] || ur.role}</Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -645,7 +818,6 @@ const Dashboard = () => {
                 <CardHeader><CardTitle>المراسلات ({chatSenders.length} محادثة)</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Chat list */}
                     <div className="border border-border rounded-xl overflow-hidden">
                       <div className="p-3 bg-accent/30 border-b border-border font-bold text-sm">المحادثات</div>
                       {chatSenders.length === 0 ? <p className="p-4 text-sm text-muted-foreground text-center">لا توجد محادثات</p> : (
@@ -663,7 +835,6 @@ const Dashboard = () => {
                         </div>
                       )}
                     </div>
-                    {/* Chat messages */}
                     <div className="md:col-span-2 border border-border rounded-xl overflow-hidden">
                       {selectedChat ? (
                         <>
@@ -680,10 +851,12 @@ const Dashboard = () => {
                               </div>
                             ))}
                           </div>
-                          <div className="p-3 border-t border-border flex gap-2">
-                            <Input value={adminReply} onChange={e => setAdminReply(e.target.value)} placeholder="اكتب الرد..." className="flex-1" onKeyDown={e => e.key === "Enter" && sendAdminReply()} />
-                            <Button size="icon" onClick={sendAdminReply} className="bg-gradient-brand shrink-0"><Send className="h-4 w-4" /></Button>
-                          </div>
+                          {hasPermission("manage_chat") && (
+                            <div className="p-3 border-t border-border flex gap-2">
+                              <Input value={adminReply} onChange={e => setAdminReply(e.target.value)} placeholder="اكتب الرد..." className="flex-1" onKeyDown={e => e.key === "Enter" && sendAdminReply()} />
+                              <Button size="icon" onClick={sendAdminReply} className="bg-gradient-brand shrink-0"><Send className="h-4 w-4" /></Button>
+                            </div>
+                          )}
                         </>
                       ) : (
                         <div className="h-[400px] flex items-center justify-center text-muted-foreground"><p>اختر محادثة لعرضها</p></div>

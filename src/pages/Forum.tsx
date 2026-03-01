@@ -10,8 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Heart, Send, Plus, Clock, User, ChevronDown, ChevronUp, Trash2, Share2 } from "lucide-react";
+import { MessageSquare, Heart, Send, Plus, Clock, User, ChevronDown, ChevronUp, Trash2, Share2, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ScrollReveal } from "@/hooks/useScrollAnimation";
 
 const categoryLabels: Record<string, string> = {
   general: "عام",
@@ -144,32 +145,53 @@ const Forum = () => {
     return `منذ ${days} يوم`;
   };
 
-  if (loading) return <div className="container mx-auto px-4 py-20 text-center text-muted-foreground">جاري التحميل...</div>;
+  if (loading) return (
+    <div className="container mx-auto px-4 py-20 text-center">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+        <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+        <p className="text-muted-foreground">جاري تحميل المنتدى...</p>
+      </motion.div>
+    </div>
+  );
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+      >
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">المنتدى</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-2 flex items-center gap-3">
+            <motion.div
+              className="w-12 h-12 bg-gradient-brand rounded-xl flex items-center justify-center"
+              whileHover={{ rotate: 5 }}
+            >
+              <MessageSquare className="h-6 w-6 text-white" />
+            </motion.div>
+            المنتدى
+          </h1>
           <p className="text-muted-foreground">شارك أفكارك وتجاربك مع مجتمع الجامعة</p>
         </div>
         {user ? (
           <Dialog open={newPostDialog} onOpenChange={setNewPostDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-brand font-bold"><Plus className="ml-2 h-4 w-4" /> منشور جديد</Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button className="bg-gradient-brand font-bold shadow-lg"><Plus className="ml-2 h-4 w-4" /> منشور جديد</Button>
+              </motion.div>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>إنشاء منشور جديد</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> إنشاء منشور جديد</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>العنوان *</Label>
-                  <Input value={postForm.title} onChange={e => setPostForm({ ...postForm, title: e.target.value })} placeholder="عنوان المنشور" />
+                  <Input value={postForm.title} onChange={e => setPostForm({ ...postForm, title: e.target.value })} placeholder="عنوان المنشور" className="h-12 rounded-xl" />
                 </div>
                 <div className="space-y-2">
                   <Label>التصنيف</Label>
                   <Select value={postForm.category} onValueChange={v => setPostForm({ ...postForm, category: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(categoryLabels).map(([k, v]) => (
                         <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -179,60 +201,71 @@ const Forum = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>المحتوى *</Label>
-                  <Textarea value={postForm.content} onChange={e => setPostForm({ ...postForm, content: e.target.value })} className="min-h-[150px]" placeholder="اكتب ما تريد مشاركته..." />
+                  <Textarea value={postForm.content} onChange={e => setPostForm({ ...postForm, content: e.target.value })} className="min-h-[150px] rounded-xl" placeholder="اكتب ما تريد مشاركته..." />
                 </div>
-                <Button onClick={createPost} className="w-full bg-gradient-brand" disabled={submitting}>
-                  {submitting ? "جاري النشر..." : "نشر المنشور"}
-                </Button>
+                <motion.div whileTap={{ scale: 0.98 }}>
+                  <Button onClick={createPost} className="w-full bg-gradient-brand h-12 rounded-xl font-bold" disabled={submitting}>
+                    {submitting ? (
+                      <span className="flex items-center gap-2">
+                        <motion.div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+                        جاري النشر...
+                      </span>
+                    ) : "نشر المنشور"}
+                  </Button>
+                </motion.div>
               </div>
             </DialogContent>
           </Dialog>
         ) : (
-          <Link to="/auth"><Button variant="outline">سجل دخولك للمشاركة</Button></Link>
+          <Link to="/auth">
+            <motion.div whileHover={{ scale: 1.05 }}>
+              <Button variant="outline" className="rounded-xl">سجل دخولك للمشاركة</Button>
+            </motion.div>
+          </Link>
         )}
-      </div>
+      </motion.div>
 
       {/* Category Filter */}
-      <div className="flex gap-2 flex-wrap mb-8">
-        <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>الكل</Button>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex gap-2 flex-wrap mb-8">
+        <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")} className="rounded-full">الكل</Button>
         {Object.entries(categoryLabels).map(([k, v]) => (
-          <Button key={k} size="sm" variant={filter === k ? "default" : "outline"} onClick={() => setFilter(k)}>{v}</Button>
+          <Button key={k} size="sm" variant={filter === k ? "default" : "outline"} onClick={() => setFilter(k)} className="rounded-full">{v}</Button>
         ))}
-      </div>
+      </motion.div>
 
       {/* Posts */}
       {filteredPosts.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 text-muted-foreground">
           <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-30" />
           <p className="text-lg">لا توجد منشورات بعد. كن أول من ينشر!</p>
-        </div>
+        </motion.div>
       ) : (
         <div className="space-y-6">
-          <AnimatePresence>
-            {filteredPosts.map((post) => {
-              const postComments = getPostComments(post.id);
-              const isExpanded = expandedPost === post.id;
-              return (
+          {filteredPosts.map((post, index) => {
+            const postComments = getPostComments(post.id);
+            const isExpanded = expandedPost === post.id;
+            return (
+              <ScrollReveal key={post.id} delay={index * 0.05}>
                 <motion.div
-                  key={post.id}
                   id={post.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
+                  layout
+                  className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300"
                 >
                   <div className="p-6">
                     {/* Post header */}
                     <div className="flex items-center gap-3 mb-4">
                       {getProfileAvatar(post.user_id) ? (
-                        <img src={getProfileAvatar(post.user_id)} alt="" className="w-10 h-10 rounded-full object-cover border border-border" />
+                        <img src={getProfileAvatar(post.user_id)} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-primary/10" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center"><User className="h-5 w-5 text-primary" /></div>
+                        <div className="w-11 h-11 rounded-full bg-gradient-brand flex items-center justify-center">
+                          <User className="h-5 w-5 text-white" />
+                        </div>
                       )}
                       <div className="flex-1">
                         <p className="font-bold text-foreground text-sm">{getProfileName(post.user_id)}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {timeAgo(post.created_at)}</p>
                       </div>
-                      <Badge className={categoryColors[post.category] || "bg-muted"}>{categoryLabels[post.category] || post.category}</Badge>
+                      <Badge className={`rounded-full ${categoryColors[post.category] || "bg-muted"}`}>{categoryLabels[post.category] || post.category}</Badge>
                     </div>
 
                     {/* Post content */}
@@ -240,19 +273,25 @@ const Forum = () => {
                     <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-4 mt-5 pt-4 border-t border-border">
-                      <button onClick={() => toggleLike(post.id)} className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked(post.id) ? "text-red-500 font-bold" : "text-muted-foreground hover:text-red-500"}`}>
-                        <Heart className={`h-4 w-4 ${hasLiked(post.id) ? "fill-red-500" : ""}`} />
+                    <div className="flex items-center gap-5 mt-5 pt-4 border-t border-border">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => toggleLike(post.id)}
+                        className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked(post.id) ? "text-red-500 font-bold" : "text-muted-foreground hover:text-red-500"}`}
+                      >
+                        <motion.div animate={hasLiked(post.id) ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.3 }}>
+                          <Heart className={`h-5 w-5 ${hasLiked(post.id) ? "fill-red-500" : ""}`} />
+                        </motion.div>
                         <span>{getLikeCount(post.id)}</span>
-                      </button>
+                      </motion.button>
                       <button onClick={() => setExpandedPost(isExpanded ? null : post.id)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-                        <MessageSquare className="h-4 w-4" />
+                        <MessageSquare className="h-5 w-5" />
                         <span>{postComments.length} تعليق</span>
                         {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                       </button>
                       <button onClick={() => sharePost(post.id)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-                        <Share2 className="h-4 w-4" />
-                        <span>مشاركة</span>
+                        <Share2 className="h-5 w-5" />
+                        <span className="hidden sm:inline">مشاركة</span>
                       </button>
                       {user?.id === post.user_id && (
                         <button onClick={() => deletePost(post.id)} className="flex items-center gap-1.5 text-sm text-destructive hover:text-destructive/80 transition-colors mr-auto">
@@ -267,14 +306,14 @@ const Forum = () => {
                     {isExpanded && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-border bg-muted/20">
                         <div className="p-6 space-y-4">
-                          {postComments.length === 0 && <p className="text-sm text-muted-foreground text-center">لا توجد تعليقات بعد</p>}
+                          {postComments.length === 0 && <p className="text-sm text-muted-foreground text-center py-2">لا توجد تعليقات بعد</p>}
                           {postComments.map(comment => (
-                            <div key={comment.id} className="flex gap-3">
-                              <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shrink-0">
+                            <motion.div key={comment.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
+                              <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden">
                                 {getProfileAvatar(comment.user_id) ? (
-                                  <img src={getProfileAvatar(comment.user_id)} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                  <img src={getProfileAvatar(comment.user_id)} alt="" className="w-9 h-9 rounded-full object-cover" />
                                 ) : (
-                                  <User className="h-4 w-4 text-primary" />
+                                  <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center"><User className="h-4 w-4 text-primary" /></div>
                                 )}
                               </div>
                               <div className="flex-1 bg-card p-3 rounded-xl border border-border">
@@ -289,20 +328,22 @@ const Forum = () => {
                                 </div>
                                 <p className="text-sm text-muted-foreground">{comment.content}</p>
                               </div>
-                            </div>
+                            </motion.div>
                           ))}
                           {user && (
                             <div className="flex gap-3 items-center">
-                              <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shrink-0"><User className="h-4 w-4 text-primary" /></div>
+                              <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center shrink-0"><User className="h-4 w-4 text-primary" /></div>
                               <div className="flex-1 flex gap-2">
                                 <Input
                                   value={commentText[post.id] || ""}
                                   onChange={e => setCommentText({ ...commentText, [post.id]: e.target.value })}
                                   placeholder="أضف تعليقاً..."
-                                  className="flex-1"
+                                  className="flex-1 rounded-xl"
                                   onKeyDown={e => e.key === "Enter" && addComment(post.id)}
                                 />
-                                <Button size="icon" onClick={() => addComment(post.id)} className="bg-gradient-brand shrink-0"><Send className="h-4 w-4" /></Button>
+                                <motion.div whileTap={{ scale: 0.9 }}>
+                                  <Button size="icon" onClick={() => addComment(post.id)} className="bg-gradient-brand shrink-0 rounded-xl"><Send className="h-4 w-4" /></Button>
+                                </motion.div>
                               </div>
                             </div>
                           )}
@@ -311,9 +352,9 @@ const Forum = () => {
                     )}
                   </AnimatePresence>
                 </motion.div>
-              );
-            })}
-          </AnimatePresence>
+              </ScrollReveal>
+            );
+          })}
         </div>
       )}
     </div>
