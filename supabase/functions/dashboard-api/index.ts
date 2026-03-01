@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -108,6 +108,16 @@ serve(async (req) => {
       const body = await req.json();
       const { error } = await supabase.from("notifications").insert(body);
       if (error) throw error;
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "assign-role") {
+      const { user_id, role } = await req.json();
+      await supabase.from("user_roles").delete().eq("user_id", user_id);
+      if (role && role !== "remove") {
+        const { error } = await supabase.from("user_roles").insert({ user_id, role });
+        if (error) throw error;
+      }
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
