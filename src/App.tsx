@@ -21,6 +21,7 @@ import FAQ from "./pages/FAQ";
 import KnowYourRights from "./pages/KnowYourRights";
 import VolunteersShowcase from "./pages/VolunteersShowcase";
 import Forum from "./pages/Forum";
+import Install from "./pages/Install";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,20 +31,42 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import BottomNav from "@/components/BottomNav";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import WelcomeModal from "@/components/WelcomeModal";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  const [pwaPromptDone, setPwaPromptDone] = useState(() => !!localStorage.getItem("pwa-install-dismissed"));
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  const handlePwaDismiss = useCallback(() => {
+    setPwaPromptDone(true);
+    // Show welcome modal after PWA prompt is dismissed
+    if (!localStorage.getItem("welcome-modal-seen")) {
+      setTimeout(() => setShowWelcome(true), 300);
+    }
+  }, []);
+
   useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+
+  // If PWA prompt already dismissed on mount, check welcome
+  useEffect(() => {
+    if (pwaPromptDone && !localStorage.getItem("welcome-modal-seen")) {
+      setShowWelcome(true);
+    }
+  }, [pwaPromptDone]);
+
   return (
     <div className="min-h-screen flex flex-col font-cairo bg-background text-foreground overflow-x-hidden" dir="rtl">
       <Navbar />
       <main className="flex-grow pt-20 pb-16 md:pb-0">{children}</main>
       <Footer />
       <BottomNav />
+      {!pwaPromptDone && <PWAInstallPrompt onDismiss={handlePwaDismiss} />}
+      {showWelcome && <WelcomeModal />}
     </div>
   );
 };
@@ -78,6 +101,7 @@ const App = () => (
               <Route path="/faq" element={<FAQ />} />
               <Route path="/know-your-rights" element={<KnowYourRights />} />
               <Route path="/forum" element={<Forum />} />
+              <Route path="/install" element={<Install />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
