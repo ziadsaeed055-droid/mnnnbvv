@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Select removed - using grid buttons instead
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, Heart, Send, Plus, Clock, User, ChevronDown, ChevronUp, Trash2, Share2, Sparkles } from "lucide-react";
+import { MessageSquare, Heart, Send, Plus, Clock, User, ChevronDown, ChevronUp, Trash2, Share2, Sparkles, HelpCircle, Lightbulb, BookOpen, Shield as ShieldIcon, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollReveal } from "@/hooks/useScrollAnimation";
 
@@ -23,14 +23,52 @@ const categoryLabels: Record<string, string> = {
   suggestion: "اقتراح",
 };
 
+const categoryIcons: Record<string, any> = {
+  general: MessageSquare,
+  awareness: Lightbulb,
+  rights: ShieldIcon,
+  experience: BookOpen,
+  question: HelpCircle,
+  suggestion: Sparkles,
+};
+
 const categoryColors: Record<string, string> = {
   general: "bg-muted text-muted-foreground",
-  awareness: "bg-blue-100 text-blue-700",
-  rights: "bg-purple-100 text-purple-700",
-  experience: "bg-green-100 text-green-700",
-  question: "bg-amber-100 text-amber-700",
-  suggestion: "bg-pink-100 text-pink-700",
+  awareness: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  rights: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  experience: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  question: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  suggestion: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
 };
+
+// Category-specific field configs
+const categoryFields: Record<string, { label: string; placeholder: string; field: string }[]> = {
+  question: [
+    { label: "تفاصيل السؤال", placeholder: "اشرح سؤالك بالتفصيل...", field: "content" },
+    { label: "ما الذي جربته؟", placeholder: "هل حاولت إيجاد الإجابة من مصدر آخر؟", field: "extra_context" },
+  ],
+  awareness: [
+    { label: "محتوى التوعية", placeholder: "اكتب المحتوى التوعوي...", field: "content" },
+    { label: "المصدر أو المرجع", placeholder: "مصدر المعلومة (اختياري)", field: "extra_context" },
+  ],
+  experience: [
+    { label: "تجربتك", placeholder: "شاركنا تجربتك بالتفصيل...", field: "content" },
+    { label: "ما الذي تعلمته؟", placeholder: "الدروس المستفادة من التجربة", field: "extra_context" },
+  ],
+  suggestion: [
+    { label: "الاقتراح", placeholder: "اكتب اقتراحك بالتفصيل...", field: "content" },
+    { label: "الفائدة المتوقعة", placeholder: "كيف سيستفيد المجتمع من هذا الاقتراح؟", field: "extra_context" },
+  ],
+};
+
+// Reaction emojis
+const reactions = [
+  { type: "like", emoji: "👍", label: "إعجاب" },
+  { type: "love", emoji: "❤️", label: "أحببته" },
+  { type: "sad", emoji: "😢", label: "حزين" },
+  { type: "happy", emoji: "😊", label: "سعيد" },
+  { type: "angry", emoji: "😡", label: "أغضبني" },
+];
 
 const Forum = () => {
   const { user } = useAuth();
@@ -40,11 +78,13 @@ const Forum = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newPostDialog, setNewPostDialog] = useState(false);
-  const [postForm, setPostForm] = useState({ title: "", content: "", category: "general" });
+  const [postForm, setPostForm] = useState({ title: "", content: "", category: "general", extra_context: "" });
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [reactionPickerPost, setReactionPickerPost] = useState<string | null>(null);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const fetchData = async () => {
     const [postsRes, likesRes, commentsRes, profilesRes] = await Promise.all([
@@ -68,17 +108,20 @@ const Forum = () => {
     if (!user) { toast.error("يجب تسجيل الدخول أولاً"); return; }
     if (!postForm.title || !postForm.content) { toast.error("يرجى ملء العنوان والمحتوى"); return; }
     setSubmitting(true);
+    const fullContent = postForm.extra_context
+      ? `${postForm.content}\n\n---\n${postForm.extra_context}`
+      : postForm.content;
     const { error } = await supabase.from("forum_posts").insert({
       user_id: user.id,
       title: postForm.title,
-      content: postForm.content,
+      content: fullContent,
       category: postForm.category,
     } as any);
     if (error) { toast.error("خطأ في النشر"); console.error(error); }
     else {
       toast.success("تم نشر المنشور بنجاح!");
       setNewPostDialog(false);
-      setPostForm({ title: "", content: "", category: "general" });
+      setPostForm({ title: "", content: "", category: "general", extra_context: "" });
       fetchData();
     }
     setSubmitting(false);
@@ -125,12 +168,20 @@ const Forum = () => {
     toast.success("تم نسخ رابط المنشور");
   };
 
-  const filteredPosts = filter === "all" ? posts : posts.filter(p => p.category === filter);
+  const handleLongPressStart = (postId: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setReactionPickerPost(postId);
+    }, 500);
+  };
 
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  const filteredPosts = filter === "all" ? posts : posts.filter(p => p.category === filter);
   const getPostComments = (postId: string) => comments.filter(c => c.post_id === postId);
   const hasLiked = (postId: string) => user ? likes.some(l => l.post_id === postId && l.user_id === user.id) : false;
   const getLikeCount = (postId: string) => likes.filter(l => l.post_id === postId).length;
-
   const getProfileName = (userId: string) => profiles[userId]?.full_name || "مستخدم";
   const getProfileAvatar = (userId: string) => profiles[userId]?.avatar_url;
 
@@ -143,6 +194,16 @@ const Forum = () => {
     if (hours < 24) return `منذ ${hours} ساعة`;
     const days = Math.floor(hours / 24);
     return `منذ ${days} يوم`;
+  };
+
+  const isQuestion = (category: string) => category === "question";
+  const getCommentLabel = (category: string) => isQuestion(category) ? "إجابة" : "تعليق";
+
+  // Dynamic fields based on category
+  const getFormFields = () => {
+    const fields = categoryFields[postForm.category];
+    if (fields) return fields;
+    return [{ label: "المحتوى *", placeholder: "اكتب ما تريد مشاركته...", field: "content" }];
   };
 
   if (loading) return (
@@ -164,10 +225,7 @@ const Forum = () => {
       >
         <div>
           <h1 className="text-4xl font-bold text-foreground mb-2 flex items-center gap-3">
-            <motion.div
-              className="w-12 h-12 bg-gradient-brand rounded-xl flex items-center justify-center"
-              whileHover={{ rotate: 5 }}
-            >
+            <motion.div className="w-12 h-12 bg-gradient-brand rounded-xl flex items-center justify-center" whileHover={{ rotate: 5 }}>
               <MessageSquare className="h-6 w-6 text-white" />
             </motion.div>
             المنتدى
@@ -181,36 +239,87 @@ const Forum = () => {
                 <Button className="bg-gradient-brand font-bold shadow-lg"><Plus className="ml-2 h-4 w-4" /> منشور جديد</Button>
               </motion.div>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
               <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> إنشاء منشور جديد</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-4">
+                {/* Category selector with icons */}
+                <div className="space-y-2">
+                  <Label>نوع المنشور</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(categoryLabels).map(([k, v]) => {
+                      const Icon = categoryIcons[k] || MessageSquare;
+                      return (
+                        <motion.button
+                          key={k}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setPostForm({ ...postForm, category: k, content: "", extra_context: "" })}
+                          className={`p-3 rounded-xl border-2 text-center transition-all ${postForm.category === k ? "border-primary bg-primary/10 shadow-sm" : "border-border hover:border-primary/30"}`}
+                        >
+                          <Icon className={`h-5 w-5 mx-auto mb-1 ${postForm.category === k ? "text-primary" : "text-muted-foreground"}`} />
+                          <span className={`text-xs font-bold ${postForm.category === k ? "text-primary" : "text-muted-foreground"}`}>{v}</span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label>العنوان *</Label>
-                  <Input value={postForm.title} onChange={e => setPostForm({ ...postForm, title: e.target.value })} placeholder="عنوان المنشور" className="h-12 rounded-xl" />
+                  <Input
+                    value={postForm.title}
+                    onChange={e => setPostForm({ ...postForm, title: e.target.value })}
+                    placeholder={isQuestion(postForm.category) ? "ما هو سؤالك؟" : "عنوان المنشور"}
+                    className="h-12 rounded-xl"
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label>التصنيف</Label>
-                  <Select value={postForm.category} onValueChange={v => setPostForm({ ...postForm, category: v })}>
-                    <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(categoryLabels).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>المحتوى *</Label>
-                  <Textarea value={postForm.content} onChange={e => setPostForm({ ...postForm, content: e.target.value })} className="min-h-[150px] rounded-xl" placeholder="اكتب ما تريد مشاركته..." />
-                </div>
+
+                {/* Dynamic fields based on category */}
+                {getFormFields().map((field, i) => (
+                  <div key={i} className="space-y-2">
+                    <Label>{field.label}</Label>
+                    {field.field === "content" ? (
+                      <Textarea
+                        value={postForm.content}
+                        onChange={e => setPostForm({ ...postForm, content: e.target.value })}
+                        className="min-h-[120px] rounded-xl"
+                        placeholder={field.placeholder}
+                      />
+                    ) : (
+                      <Textarea
+                        value={postForm.extra_context}
+                        onChange={e => setPostForm({ ...postForm, extra_context: e.target.value })}
+                        className="min-h-[80px] rounded-xl"
+                        placeholder={field.placeholder}
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {/* Default content field for general/rights */}
+                {!categoryFields[postForm.category] && (
+                  <div className="space-y-2">
+                    <Label>المحتوى *</Label>
+                    <Textarea
+                      value={postForm.content}
+                      onChange={e => setPostForm({ ...postForm, content: e.target.value })}
+                      className="min-h-[150px] rounded-xl"
+                      placeholder="اكتب ما تريد مشاركته..."
+                    />
+                  </div>
+                )}
+
                 <motion.div whileTap={{ scale: 0.98 }}>
                   <Button onClick={createPost} className="w-full bg-gradient-brand h-12 rounded-xl font-bold" disabled={submitting}>
                     {submitting ? (
                       <span className="flex items-center gap-2">
                         <motion.div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
-                        جاري النشر...
                       </span>
-                    ) : "نشر المنشور"}
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <Send className="h-4 w-4" />
+                        {isQuestion(postForm.category) ? "نشر السؤال" : "نشر المنشور"}
+                      </span>
+                    )}
                   </Button>
                 </motion.div>
               </div>
@@ -244,6 +353,7 @@ const Forum = () => {
           {filteredPosts.map((post, index) => {
             const postComments = getPostComments(post.id);
             const isExpanded = expandedPost === post.id;
+            const PostIcon = categoryIcons[post.category] || MessageSquare;
             return (
               <ScrollReveal key={post.id} delay={index * 0.05}>
                 <motion.div
@@ -265,28 +375,75 @@ const Forum = () => {
                         <p className="font-bold text-foreground text-sm">{getProfileName(post.user_id)}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {timeAgo(post.created_at)}</p>
                       </div>
-                      <Badge className={`rounded-full ${categoryColors[post.category] || "bg-muted"}`}>{categoryLabels[post.category] || post.category}</Badge>
+                      <Badge className={`rounded-full flex items-center gap-1 ${categoryColors[post.category] || "bg-muted"}`}>
+                        <PostIcon className="h-3 w-3" />
+                        {categoryLabels[post.category] || post.category}
+                      </Badge>
                     </div>
+
+                    {/* Question badge */}
+                    {isQuestion(post.category) && (
+                      <div className="mb-3 flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                        <HelpCircle className="h-4 w-4" />
+                        <span className="text-xs font-bold">سؤال يبحث عن إجابة</span>
+                      </div>
+                    )}
 
                     {/* Post content */}
                     <h3 className="text-lg font-bold text-foreground mb-2">{post.title}</h3>
                     <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-5 mt-5 pt-4 border-t border-border">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => toggleLike(post.id)}
-                        className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked(post.id) ? "text-red-500 font-bold" : "text-muted-foreground hover:text-red-500"}`}
-                      >
-                        <motion.div animate={hasLiked(post.id) ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.3 }}>
-                          <Heart className={`h-5 w-5 ${hasLiked(post.id) ? "fill-red-500" : ""}`} />
-                        </motion.div>
-                        <span>{getLikeCount(post.id)}</span>
-                      </motion.button>
+                    {/* Actions with reaction picker */}
+                    <div className="flex items-center gap-5 mt-5 pt-4 border-t border-border relative">
+                      <div className="relative">
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => toggleLike(post.id)}
+                          onMouseDown={() => handleLongPressStart(post.id)}
+                          onMouseUp={handleLongPressEnd}
+                          onMouseLeave={handleLongPressEnd}
+                          onTouchStart={() => handleLongPressStart(post.id)}
+                          onTouchEnd={handleLongPressEnd}
+                          className={`flex items-center gap-1.5 text-sm transition-colors ${hasLiked(post.id) ? "text-red-500 font-bold" : "text-muted-foreground hover:text-red-500"}`}
+                        >
+                          <motion.div animate={hasLiked(post.id) ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.3 }}>
+                            <Heart className={`h-5 w-5 ${hasLiked(post.id) ? "fill-red-500" : ""}`} />
+                          </motion.div>
+                          <span>{getLikeCount(post.id)}</span>
+                        </motion.button>
+
+                        {/* Reaction picker popup */}
+                        <AnimatePresence>
+                          {reactionPickerPost === post.id && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                              className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-2xl shadow-xl p-2 flex gap-1 z-20"
+                            >
+                              {reactions.map((r) => (
+                                <motion.button
+                                  key={r.type}
+                                  whileHover={{ scale: 1.3, y: -5 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => {
+                                    toggleLike(post.id);
+                                    setReactionPickerPost(null);
+                                  }}
+                                  className="w-10 h-10 rounded-full hover:bg-muted flex items-center justify-center text-xl transition-colors"
+                                  title={r.label}
+                                >
+                                  {r.emoji}
+                                </motion.button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
                       <button onClick={() => setExpandedPost(isExpanded ? null : post.id)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-                        <MessageSquare className="h-5 w-5" />
-                        <span>{postComments.length} تعليق</span>
+                        <MessageCircle className="h-5 w-5" />
+                        <span>{postComments.length} {getCommentLabel(post.category)}</span>
                         {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                       </button>
                       <button onClick={() => sharePost(post.id)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
@@ -301,12 +458,22 @@ const Forum = () => {
                     </div>
                   </div>
 
-                  {/* Comments section */}
+                  {/* Comments/Answers section */}
                   <AnimatePresence>
                     {isExpanded && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-border bg-muted/20">
                         <div className="p-6 space-y-4">
-                          {postComments.length === 0 && <p className="text-sm text-muted-foreground text-center py-2">لا توجد تعليقات بعد</p>}
+                          {isQuestion(post.category) && (
+                            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-bold mb-2">
+                              <HelpCircle className="h-4 w-4" />
+                              <span>الإجابات ({postComments.length})</span>
+                            </div>
+                          )}
+                          {postComments.length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                              {isQuestion(post.category) ? "لا توجد إجابات بعد. كن أول من يجيب!" : "لا توجد تعليقات بعد"}
+                            </p>
+                          )}
                           {postComments.map(comment => (
                             <motion.div key={comment.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex gap-3">
                               <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden">
@@ -337,7 +504,7 @@ const Forum = () => {
                                 <Input
                                   value={commentText[post.id] || ""}
                                   onChange={e => setCommentText({ ...commentText, [post.id]: e.target.value })}
-                                  placeholder="أضف تعليقاً..."
+                                  placeholder={isQuestion(post.category) ? "اكتب إجابتك..." : "أضف تعليقاً..."}
                                   className="flex-1 rounded-xl"
                                   onKeyDown={e => e.key === "Enter" && addComment(post.id)}
                                 />
@@ -356,6 +523,11 @@ const Forum = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Close reaction picker on outside click */}
+      {reactionPickerPost && (
+        <div className="fixed inset-0 z-10" onClick={() => setReactionPickerPost(null)} />
       )}
     </div>
   );
