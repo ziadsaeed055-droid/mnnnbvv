@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Code, Database, Globe, Layers, Cpu, Sparkles } from "lucide-react";
+import { X, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import developerPhoto from "@/assets/developer-photo.png";
 
@@ -33,92 +33,49 @@ const WelcomeModal = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 z-[71] md:w-full md:max-w-2xl md:max-h-[85vh] overflow-y-auto bg-card rounded-3xl shadow-2xl border border-border"
+            className="fixed z-[71] left-1/2 -translate-x-1/2 bottom-6 md:bottom-auto md:top-1/2 md:-translate-y-1/2 w-[calc(100%-2rem)] max-w-md md:max-w-lg bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
           >
-            {/* Header gradient */}
-            <div className="relative h-48 md:h-56 overflow-hidden rounded-t-3xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600" />
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-50" />
-              
-              <button onClick={dismiss} className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors z-10">
-                <X className="h-4 w-4" />
+            {/* Header with photo */}
+            <div className="relative bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600 px-5 py-4 flex items-center gap-4">
+              <button onClick={dismiss} className="absolute top-3 left-3 w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors">
+                <X className="h-3.5 w-3.5" />
               </button>
-
-              <div className="absolute bottom-0 right-6 flex items-end gap-4">
-                <div className="relative">
-                  <img
-                    src={developerPhoto}
-                    alt="Ayman - المطور"
-                    className="w-28 h-28 md:w-36 md:h-36 rounded-2xl object-cover border-4 border-card shadow-xl translate-y-6"
-                  />
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5, type: "spring" }}
-                    className="absolute -top-2 -left-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-card"
-                  >
-                    <Code className="h-4 w-4 text-white" />
-                  </motion.div>
-                </div>
-                <div className="text-white pb-8">
-                  <h2 className="text-xl md:text-2xl font-bold">Ayman</h2>
-                  <p className="text-white/80 text-sm">Full-Stack Developer & IT Specialist</p>
-                </div>
+              <div className="relative shrink-0">
+                <img
+                  src={developerPhoto}
+                  alt="محمد أيمن - المطور"
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-xl object-cover border-2 border-white/30 shadow-lg"
+                />
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring" }}
+                  className="absolute -top-1 -left-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-card"
+                >
+                  <Code className="h-3 w-3 text-white" />
+                </motion.div>
+              </div>
+              <div className="text-white">
+                <h2 className="text-lg md:text-xl font-bold">محمد أيمن محمد سلطان</h2>
+                <p className="text-white/80 text-xs md:text-sm">Full-Stack Developer & IT Specialist</p>
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6 pt-10 space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  مرحباً بك في نظام وحدة تكافؤ الفرص ومناهضة العنف ضد المرأة
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  التابعة لجامعة بني سويف التكنولوجية • رئيسة الوحدة: د. غادة توفيق • نائب الرئيس: د. سمر محمد
-                </p>
-              </div>
-
-              <div className="bg-muted/50 rounded-2xl p-5 border border-border">
-                <h4 className="font-bold text-foreground mb-3 flex items-center gap-2">
-                  <Cpu className="h-5 w-5 text-primary" />
-                  كيف تم بناء هذا النظام؟
-                </h4>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                  تم بناء هذا النظام باستخدام <strong>منهجية الهندسة التجميعية (Engineering Assembly)</strong>، 
-                  وهي منهجية تعتمد على تجميع وتكامل المكتبات البرمجية والأُطر التقنية (Frameworks) 
-                  المتاحة مفتوحة المصدر، وربطها وتكييفها مع قواعد البيانات السحابية لإنشاء نظام متكامل وفعّال.
-                </p>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { icon: Globe, title: "الواجهة الأمامية", desc: "React + TypeScript + Tailwind CSS + Framer Motion" },
-                    { icon: Database, title: "قواعد البيانات", desc: "Supabase (PostgreSQL) + Row Level Security" },
-                    { icon: Layers, title: "البنية التحتية", desc: "Edge Functions + Realtime + Storage + Auth" },
-                    { icon: Code, title: "الأدوات", desc: "Vite + PWA + Shadcn/UI + React Query" },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + i * 0.1 }}
-                      className="bg-card p-3 rounded-xl border border-border"
-                    >
-                      <item.icon className="h-4 w-4 text-primary mb-1" />
-                      <p className="text-xs font-bold text-foreground">{item.title}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">{item.desc}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                يجمع النظام بين تقنيات الـ Front-End الحديثة (React، TypeScript) مع بنية خلفية (Back-End) 
-                سحابية قوية تعتمد على Supabase لإدارة البيانات والمصادقة والتخزين، مما يوفر نظامًا آمنًا 
-                وقابلًا للتطوير يخدم أهداف الوحدة في حماية حقوق المرأة ومناهضة العنف.
+            {/* Content - concise, first person */}
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-sm text-foreground leading-relaxed">
+                أنا <strong>محمد أيمن</strong>، قمت ببناء هذا النظام لوحدة تكافؤ الفرص ومناهضة العنف ضد المرأة
+                التابعة لجامعة بني سويف التكنولوجية، باستخدام <strong>منهجية الهندسة التجميعية (Engineering Assembly)</strong>.
               </p>
 
-              <Button onClick={dismiss} className="w-full bg-gradient-brand font-bold h-12 rounded-xl">
+              <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
+                <p>• <strong>الواجهة:</strong> React + TypeScript + Tailwind CSS + Framer Motion</p>
+                <p>• <strong>قاعدة البيانات:</strong> PostgreSQL + Row Level Security + Realtime</p>
+                <p>• <strong>البنية:</strong> Edge Functions + Auth + Storage + PWA</p>
+                <p>• <strong>الأدوات:</strong> Vite + Shadcn/UI + React Query</p>
+              </div>
+
+              <Button onClick={dismiss} className="w-full bg-gradient-brand font-bold h-10 rounded-xl text-sm">
                 ابدأ الاستكشاف
               </Button>
             </div>
