@@ -93,7 +93,7 @@ const Index = () => {
               </Link>
               <Link to="/about">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 hover:text-white font-bold text-lg px-8 h-14">تعرف علينا</Button>
+                  <Button size="lg" className="bg-white/20 backdrop-blur-sm text-white border-2 border-white/40 hover:bg-white/30 hover:text-white font-bold text-lg px-8 h-14">تعرف علينا</Button>
                 </motion.div>
               </Link>
             </motion.div>
@@ -342,7 +342,7 @@ const Index = () => {
           <p className="text-lg md:text-xl text-purple-100 mb-8 max-w-2xl mx-auto">انضم لفريق المتطوعين وكن جزءاً من التغيير الإيجابي في جامعتنا، أو ساهم بالتبرع لدعم أنشطة الوحدة.</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link to="/volunteer"><motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Button size="lg" className="bg-white text-primary hover:bg-gray-100 w-full sm:w-auto font-bold">سجل كمتطوع</Button></motion.div></Link>
-            <Link to="/donate"><motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 w-full sm:w-auto font-bold">تبرع للوحدة</Button></motion.div></Link>
+            <Link to="/donate"><motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Button size="lg" className="bg-white/20 backdrop-blur-sm text-white border-2 border-white/40 hover:bg-white/30 hover:text-white w-full sm:w-auto font-bold">ساهم معنا</Button></motion.div></Link>
           </div>
         </motion.div>
       </section>

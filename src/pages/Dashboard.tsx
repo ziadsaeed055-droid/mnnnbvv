@@ -301,7 +301,7 @@ const Dashboard = () => {
   };
 
   const safetyIndex = surveys.length > 0 ? Math.round((surveys.filter((s: any) => s.feels_safe).length / surveys.length) * 100) : 0;
-  const totalDonations = donations.reduce((sum: number, d: any) => sum + Number(d.amount), 0);
+  const totalDonations = donations.length;
 
   // Group chat messages by sender
   const chatSenders = [...new Set(chatMessages.filter((m: any) => !m.is_admin).map((m: any) => m.sender_id))];
@@ -374,7 +374,7 @@ const Dashboard = () => {
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">المتطوعين</CardTitle><Users className="h-4 w-4 text-blue-500" /></CardHeader><CardContent><div className="text-2xl font-bold">{volunteers.length}</div></CardContent></Card>
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">الأنشطة</CardTitle><FileText className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-2xl font-bold">{activities.length}</div></CardContent></Card>
             <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">المستخدمين</CardTitle><User className="h-4 w-4 text-indigo-500" /></CardHeader><CardContent><div className="text-2xl font-bold">{profiles.length}</div></CardContent></Card>
-            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">التبرعات</CardTitle><Heart className="h-4 w-4 text-secondary" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalDonations} ج.م</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">التبرعات</CardTitle><Heart className="h-4 w-4 text-secondary" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalDonations}</div></CardContent></Card>
           </div>
 
           <Tabs defaultValue={tabs[0]?.id || "reports"} className="space-y-4">
@@ -870,17 +870,23 @@ const Dashboard = () => {
             {/* Donations Tab */}
             <TabsContent value="donations">
               <Card>
-                <CardHeader><CardTitle>التبرعات ({donations.length}) - إجمالي: {totalDonations} ج.م</CardTitle></CardHeader>
+                <CardHeader><CardTitle>التبرعات ({donations.length})</CardTitle></CardHeader>
                 <CardContent>
                   {donations.length === 0 ? <p className="text-center py-10 text-muted-foreground">لا توجد تبرعات</p> : (
                     <div className="space-y-3">
                       {donations.map((d: any) => (
-                        <div key={d.id} className="border border-border rounded-xl p-4 flex justify-between items-center">
-                          <div>
-                            <p className="font-bold text-foreground">{d.donor_name || "متبرع مجهول"} - {d.amount} ج.م</p>
-                            <p className="text-sm text-muted-foreground">{d.phone} • {new Date(d.created_at).toLocaleDateString("ar-EG")}</p>
+                        <div key={d.id} className="border border-border rounded-xl p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-bold text-foreground">{d.donor_name || "متبرع مجهول"}</p>
+                              <p className="text-sm text-primary font-medium">{d.donation_type === "time" ? "⏰ وقت وتطوع" : d.donation_type === "clothes" ? "👕 ملابس" : d.donation_type === "books" ? "📚 كتب" : d.donation_type === "electronics" ? "💻 أجهزة" : d.donation_type === "supplies" ? "🎒 مستلزمات" : "🎁 أخرى"}</p>
+                            </div>
+                            <Badge className={d.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>{d.status === "confirmed" ? "مؤكد" : "قيد المراجعة"}</Badge>
                           </div>
-                          <Badge className={d.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>{d.status === "confirmed" ? "مؤكد" : "قيد التأكيد"}</Badge>
+                          <p className="text-sm text-muted-foreground">{d.description}</p>
+                          {d.quantity && <p className="text-xs text-muted-foreground">الكمية: {d.quantity}</p>}
+                          {d.availability && <p className="text-xs text-muted-foreground">التوفر: {d.availability}</p>}
+                          <p className="text-xs text-muted-foreground">{d.phone && `📞 ${d.phone} • `}{new Date(d.created_at).toLocaleDateString("ar-EG")}</p>
                         </div>
                       ))}
                     </div>

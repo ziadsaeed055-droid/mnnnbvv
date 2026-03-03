@@ -32,7 +32,7 @@ const Auth = () => {
         toast.error(msg);
       } else {
         toast.success("تم تسجيل الدخول بنجاح");
-        navigate("/");
+        navigate("/profile");
       }
     } else {
       if (password.length < 6) {

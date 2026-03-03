@@ -4,13 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { User, Mail, Phone, GraduationCap, Save, LogOut, Camera, MessageSquare, Send, Bell } from "lucide-react";
+import { User, Phone, GraduationCap, Save, LogOut, Camera, MessageSquare, Send, Bell, Edit3, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const collegeLabels: Record<string, string> = {
   egyptian_korean: "الكلية المصرية الكورية",
@@ -39,14 +38,12 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState(false);
   const avatarRef = useRef<HTMLInputElement>(null);
 
-  // Chat state
   const [messages, setMessages] = useState<any[]>([]);
   const [chatMsg, setChatMsg] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
-
-  // Notifications state
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
@@ -70,14 +67,12 @@ const Profile = () => {
       setMessages((data as any[]) || []);
     };
     fetchChat();
-
     const channel = supabase.channel("user-chat").on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, (payload) => {
       const msg = payload.new as any;
       if (msg.sender_id === user.id || (msg.is_admin && msg.receiver_id === user.id)) {
         setMessages(prev => [...prev, msg]);
       }
     }).subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
@@ -111,7 +106,7 @@ const Profile = () => {
       .update({ full_name: fullName, phone, college, department, updated_at: new Date().toISOString() } as any)
       .eq("user_id", user.id);
     if (error) { toast.error("خطأ في حفظ البيانات"); }
-    else { toast.success("تم حفظ البيانات بنجاح"); await refreshProfile(); }
+    else { toast.success("تم حفظ البيانات بنجاح"); await refreshProfile(); setEditing(false); }
     setSaving(false);
   };
 
@@ -131,96 +126,128 @@ const Profile = () => {
 
   if (!user) return null;
 
+  const deptLabel = ekcDepartments.find(d => d.value === department)?.label || department;
+
   return (
-    <div className="container mx-auto px-4 py-12 max-w-3xl">
-      {/* Avatar & Header */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-        <div className="relative inline-block mb-4">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="الصورة الشخصية" className="w-24 h-24 rounded-full object-cover border-4 border-primary/20" />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-brand flex items-center justify-center border-4 border-primary/20">
-              <User className="h-12 w-12 text-white" />
-            </div>
-          )}
-          <button
-            onClick={() => avatarRef.current?.click()}
-            className="absolute bottom-0 left-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-            disabled={uploading}
-          >
-            <Camera className="h-4 w-4" />
-          </button>
-          <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])} />
+    <div className="container mx-auto px-4 py-8 max-w-3xl">
+      {/* Profile Card - Social Media Style */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm mb-6">
+        {/* Cover */}
+        <div className="h-28 md:h-36 bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 relative">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30" />
         </div>
-        <h1 className="text-3xl font-bold text-foreground mb-1">{fullName || "الملف الشخصي"}</h1>
-        <p className="text-muted-foreground">{user.email}</p>
-        {college && <p className="text-sm text-primary mt-1">{collegeLabels[college] || college}{department && ` - ${ekcDepartments.find(d => d.value === department)?.label || department}`}</p>}
+
+        {/* Avatar + Info */}
+        <div className="px-6 pb-6 -mt-12 relative">
+          <div className="flex flex-col md:flex-row md:items-end gap-4">
+            <div className="relative shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="الصورة الشخصية" className="w-24 h-24 rounded-2xl object-cover border-4 border-card shadow-lg" />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl bg-gradient-brand flex items-center justify-center border-4 border-card shadow-lg">
+                  <User className="h-12 w-12 text-white" />
+                </div>
+              )}
+              <button
+                onClick={() => avatarRef.current?.click()}
+                className="absolute -bottom-1 -left-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                disabled={uploading}
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+              <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])} />
+            </div>
+            <div className="flex-1 pt-2">
+              <h1 className="text-2xl font-bold text-foreground">{fullName || "مستخدم جديد"}</h1>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+              {college && <p className="text-xs text-primary mt-1 font-medium">{collegeLabels[college] || college}{department && ` • ${deptLabel}`}</p>}
+              {phone && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><Phone className="h-3 w-3" /> {phone}</p>}
+            </div>
+            <div className="flex gap-2 shrink-0">
+              {!editing && (
+                <Button size="sm" variant="outline" onClick={() => setEditing(true)} className="gap-1">
+                  <Edit3 className="h-3.5 w-3.5" /> تعديل
+                </Button>
+              )}
+              <Button size="sm" variant="outline" onClick={handleLogout} className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1">
+                <LogOut className="h-3.5 w-3.5" /> خروج
+              </Button>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile"><User className="h-4 w-4 ml-1" /> بياناتي</TabsTrigger>
+      {/* Edit Form - slides down */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 overflow-hidden"
+          >
+            <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold text-foreground">تعديل البيانات</h3>
+                <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-xs"><User size={12} /> الاسم الكامل</Label>
+                  <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="الاسم الكامل" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-xs"><Phone size={12} /> رقم الهاتف</Label>
+                  <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="01xxxxxxxxx" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-xs"><GraduationCap size={12} /> الكلية</Label>
+                  <Select value={college} onValueChange={v => { setCollege(v); setDepartment(""); }}>
+                    <SelectTrigger><SelectValue placeholder="اختر الكلية" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="egyptian_korean">الكلية المصرية الكورية</SelectItem>
+                      <SelectItem value="technology">الكلية التكنولوجية</SelectItem>
+                      <SelectItem value="industry">كلية الصناعة والطاقة</SelectItem>
+                      <SelectItem value="other">أخرى</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {college === "egyptian_korean" && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">القسم</Label>
+                    <Select value={department} onValueChange={setDepartment}>
+                      <SelectTrigger><SelectValue placeholder="اختر القسم" /></SelectTrigger>
+                      <SelectContent>
+                        {ekcDepartments.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <Button onClick={handleSave} className="w-full bg-gradient-brand font-bold" disabled={saving}>
+                <Save className="ml-2 h-4 w-4" /> {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tabs */}
+      <Tabs defaultValue="chat" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="chat"><MessageSquare className="h-4 w-4 ml-1" /> المراسلات</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 ml-1" /> الإشعارات</TabsTrigger>
         </TabsList>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile">
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-8 space-y-6">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><User size={16} /> الاسم الكامل</Label>
-              <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="الاسم الكامل" />
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><Mail size={16} /> البريد الإلكتروني</Label>
-              <Input value={user.email || ""} disabled className="bg-muted" />
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><Phone size={16} /> رقم الهاتف</Label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="01xxxxxxxxx" />
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><GraduationCap size={16} /> الكلية</Label>
-              <Select value={college} onValueChange={v => { setCollege(v); setDepartment(""); }}>
-                <SelectTrigger><SelectValue placeholder="اختر الكلية" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="egyptian_korean">الكلية المصرية الكورية</SelectItem>
-                  <SelectItem value="technology">الكلية التكنولوجية</SelectItem>
-                  <SelectItem value="industry">كلية الصناعة والطاقة</SelectItem>
-                  <SelectItem value="other">أخرى</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {college === "egyptian_korean" && (
-              <div className="space-y-2">
-                <Label>القسم</Label>
-                <Select value={department} onValueChange={setDepartment}>
-                  <SelectTrigger><SelectValue placeholder="اختر القسم" /></SelectTrigger>
-                  <SelectContent>
-                    {ekcDepartments.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="flex gap-4 pt-4">
-              <Button onClick={handleSave} className="flex-1 bg-gradient-brand font-bold" disabled={saving}>
-                <Save className="ml-2 h-4 w-4" /> {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
-              </Button>
-              <Button onClick={handleLogout} variant="outline" className="text-destructive border-destructive hover:bg-destructive/10">
-                <LogOut className="ml-2 h-4 w-4" /> تسجيل الخروج
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Chat Tab */}
         <TabsContent value="chat">
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-4 border-b border-border bg-accent/30">
               <h3 className="font-bold text-foreground">محادثة مع إدارة الوحدة</h3>
               <p className="text-xs text-muted-foreground">أرسل رسالتك وسيتم الرد عليك في أقرب وقت</p>
             </div>
-            <div className="h-[400px] overflow-y-auto p-4 space-y-3">
+            <div className="h-[350px] overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && <p className="text-center text-muted-foreground text-sm py-10">لا توجد رسائل بعد. أرسل رسالتك الأولى!</p>}
               {messages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.is_admin ? "justify-start" : "justify-end"}`}>
@@ -240,7 +267,6 @@ const Profile = () => {
           </div>
         </TabsContent>
 
-        {/* Notifications Tab */}
         <TabsContent value="notifications">
           <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
             {notifications.length === 0 ? (
