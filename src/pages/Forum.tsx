@@ -69,7 +69,7 @@ const Forum = () => {
   const [loading, setLoading] = useState(true);
   const [newPostDialog, setNewPostDialog] = useState(false);
   const [postForm, setPostForm] = useState({ title: "", content: "", category: "general", extra_context: "" });
-  const [postImage, setPostImage] = useState<File | null>(null);
+  const [postImages, setPostImages] = useState<File[]>([]);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -101,16 +101,18 @@ const Forum = () => {
     if (!postForm.title || !postForm.content) { toast.error("يرجى ملء العنوان والمحتوى"); return; }
     setSubmitting(true);
     
-    let image_url = null;
-    if (postImage) {
-      const fileName = `forum/${Date.now()}-${postImage.name}`;
-      const { data, error } = await supabase.storage.from("activity-images").upload(fileName, postImage);
+    // Upload multiple images
+    const uploadedUrls: string[] = [];
+    for (const img of postImages.slice(0, 6)) {
+      const fileName = `forum/${Date.now()}-${Math.random().toString(36).slice(2)}-${img.name}`;
+      const { data, error } = await supabase.storage.from("activity-images").upload(fileName, img);
       if (!error && data) {
         const { data: urlData } = supabase.storage.from("activity-images").getPublicUrl(data.path);
-        image_url = urlData.publicUrl;
+        uploadedUrls.push(urlData.publicUrl);
       }
     }
 
+    const image_url = uploadedUrls.length > 0 ? uploadedUrls.join("|||") : null;
     const fullContent = postForm.extra_context ? `${postForm.content}\n\n---\n${postForm.extra_context}` : postForm.content;
     const { error } = await supabase.from("forum_posts").insert({
       user_id: user.id, title: postForm.title, content: fullContent,
@@ -121,7 +123,7 @@ const Forum = () => {
       toast.success("تم نشر المنشور بنجاح!");
       setNewPostDialog(false);
       setPostForm({ title: "", content: "", category: "general", extra_context: "" });
-      setPostImage(null);
+      setPostImages([]);
       fetchData();
     }
     setSubmitting(false);
@@ -252,13 +254,30 @@ const Forum = () => {
                   />
                 )}
 
-                {/* Image upload */}
-                <div className="flex items-center gap-2">
-                  <button onClick={() => imageRef.current?.click()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors border border-border rounded-lg px-3 py-2">
-                    <ImageIcon className="h-4 w-4" /> إضافة صورة
-                  </button>
-                  {postImage && <span className="text-xs text-primary">{postImage.name}</span>}
-                  <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && setPostImage(e.target.files[0])} />
+                {/* Image upload - up to 6 */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => imageRef.current?.click()} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors border border-border rounded-lg px-3 py-2">
+                      <ImageIcon className="h-4 w-4" /> إضافة صور (حتى 6)
+                    </button>
+                    <span className="text-xs text-muted-foreground">{postImages.length}/6</span>
+                    <input ref={imageRef} type="file" accept="image/*" multiple className="hidden" onChange={e => {
+                      if (e.target.files) {
+                        const newFiles = Array.from(e.target.files).slice(0, 6 - postImages.length);
+                        setPostImages(prev => [...prev, ...newFiles].slice(0, 6));
+                      }
+                    }} />
+                  </div>
+                  {postImages.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap">
+                      {postImages.map((f, i) => (
+                        <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden border border-border">
+                          <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                          <button onClick={() => setPostImages(prev => prev.filter((_, j) => j !== i))} className="absolute top-0 right-0 w-4 h-4 bg-destructive text-white text-[8px] flex items-center justify-center rounded-bl">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <Button onClick={createPost} className="w-full bg-gradient-brand h-10 font-bold text-sm" disabled={submitting}>
@@ -327,12 +346,24 @@ const Forum = () => {
                     <h3 className="text-base font-bold text-foreground mb-1.5">{post.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-                    {/* Post image */}
-                    {post.image_url && (
-                      <div className="mt-3 rounded-xl overflow-hidden border border-border">
-                        <img src={post.image_url} alt="" className="w-full max-h-80 object-cover" />
-                      </div>
-                    )}
+                    {/* Post images */}
+                    {post.image_url && (() => {
+                      const urls = post.image_url.split("|||").filter(Boolean);
+                      if (urls.length === 1) return (
+                        <div className="mt-3 rounded-xl overflow-hidden border border-border">
+                          <img src={urls[0]} alt="" className="w-full max-h-80 object-cover" />
+                        </div>
+                      );
+                      return (
+                        <div className={`mt-3 grid gap-1.5 ${urls.length === 2 ? "grid-cols-2" : urls.length <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
+                          {urls.slice(0, 6).map((url: string, i: number) => (
+                            <div key={i} className="rounded-xl overflow-hidden border border-border aspect-square">
+                              <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                     {/* Actions with reaction picker */}
                     <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border relative">

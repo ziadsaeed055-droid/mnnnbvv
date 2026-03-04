@@ -33,7 +33,7 @@ const WelcomeModal = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed z-[71] left-1/2 -translate-x-1/2 bottom-6 md:bottom-auto md:top-1/2 md:-translate-y-1/2 w-[calc(100%-2rem)] max-w-md md:max-w-lg bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
+            className="fixed z-[71] left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-md md:max-w-lg bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
           >
             {/* Header with photo */}
             <div className="relative bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600 px-5 py-4 flex items-center gap-4">
@@ -44,28 +44,33 @@ const WelcomeModal = () => {
                 <img
                   src={developerPhoto}
                   alt="محمد أيمن - المطور"
-                  className="w-16 h-16 md:w-20 md:h-20 rounded-xl object-cover border-2 border-white/30 shadow-lg"
+                  className="w-14 h-14 md:w-20 md:h-20 rounded-xl object-cover border-2 border-white/30 shadow-lg"
                 />
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.5, type: "spring" }}
-                  className="absolute -top-1 -left-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-card"
+                  className="absolute -top-1 -left-1 w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-card"
                 >
-                  <Code className="h-3 w-3 text-white" />
+                  <Code className="h-2.5 w-2.5 md:h-3 md:w-3 text-white" />
                 </motion.div>
               </div>
               <div className="text-white">
-                <h2 className="text-lg md:text-xl font-bold">محمد أيمن محمد سلطان</h2>
-                <p className="text-white/80 text-xs md:text-sm">Full-Stack Developer & IT Specialist</p>
+                <h2 className="text-base md:text-xl font-bold">محمد أيمن محمد سلطان</h2>
+                <p className="text-white/80 text-[11px] md:text-sm">Full-Stack Developer & IT Specialist</p>
               </div>
             </div>
 
-            {/* Content - concise, first person */}
-            <div className="px-5 py-4 space-y-3">
+            {/* Content */}
+            <div className="px-5 py-4 space-y-3 max-h-[55vh] md:max-h-[60vh] overflow-y-auto">
               <p className="text-sm text-foreground leading-relaxed">
-                أنا <strong>محمد أيمن</strong>، قمت ببناء هذا النظام لوحدة تكافؤ الفرص ومناهضة العنف ضد المرأة
-                التابعة لجامعة بني سويف التكنولوجية، باستخدام <strong>منهجية الهندسة التجميعية (Engineering Assembly)</strong>.
+                أنا الطالب <strong>محمد أيمن محمد سلطان</strong>، قسم تكنولوجيا المعلومات والاتصالات.
+                تطوعت بوقتي وجهدي وعلمي لبناء هذا النظام الرقمي المتكامل لوحدة تكافؤ الفرص ومناهضة العنف ضد المرأة
+                بجامعة بني سويف التكنولوجية، إيمانًا مني بأهمية هذه القضية النبيلة — قضية المرأة.
+              </p>
+
+              <p className="text-sm text-foreground leading-relaxed">
+                بنيت هذا النظام بمنهجية <strong>الهندسة التجميعية (Engineering Assembly)</strong>، حيث جمعت أفضل المكتبات والأدوات مفتوحة المصدر وربطتها وكيّفتها لتعمل كمنظومة واحدة متكاملة:
               </p>
 
               <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
