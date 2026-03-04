@@ -35,6 +35,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import WelcomeModal from "@/components/WelcomeModal";
+import AIChatbot from "@/components/AIChatbot";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -67,6 +68,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <BottomNav />
       {!pwaPromptDone && <PWAInstallPrompt onDismiss={handlePwaDismiss} />}
       {showWelcome && <WelcomeModal />}
+      <AIChatbot />
     </div>
   );
 };

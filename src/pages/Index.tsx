@@ -5,6 +5,8 @@ import { Shield, Heart, Users, BookOpen, ChevronLeft, Calendar, Activity, ArrowL
 import { motion, useScroll, useTransform } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollReveal } from "@/hooks/useScrollAnimation";
+import OpeningCeremonySection from "@/components/OpeningCeremonySection";
+import DrGhadaSection from "@/components/DrGhadaSection";
 
 const typeLabels: Record<string, string> = {
   seminar: "ندوة", workshop: "ورشة عمل", campaign: "حملة توعوية", training: "تدريب", conference: "مؤتمر",
@@ -263,6 +265,12 @@ const Index = () => {
           </div>
         </section>
       </ScrollReveal>
+
+      {/* Opening Ceremony Section */}
+      <OpeningCeremonySection />
+
+      {/* Dr. Ghada Section */}
+      <DrGhadaSection />
 
       {/* Volunteers Section */}
       {volunteers.length > 0 && (

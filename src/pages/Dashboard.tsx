@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, FileText, AlertCircle, CheckCircle, Plus, Trash2, Heart, Upload, Image, Video, BookOpen, Send, Bell, User, ShieldCheck, Lock } from "lucide-react";
+import { Users, FileText, AlertCircle, CheckCircle, Plus, Trash2, Heart, Upload, Image, Video, BookOpen, Send, Bell, User, ShieldCheck, Lock, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -76,6 +76,7 @@ const Dashboard = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [userRoles, setUserRoles] = useState<any[]>([]);
+  const [forumPosts, setForumPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Activity form
@@ -113,11 +114,16 @@ const Dashboard = () => {
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("user");
 
+  // Forum post form
+  const [forumPostDialog, setForumPostDialog] = useState(false);
+  const [forumForm, setForumForm] = useState({ title: "", content: "", category: "general" });
+
   const fetchAll = async () => {
     try {
-      const [dashData, rolesData] = await Promise.all([
+      const [dashData, rolesData, forumData] = await Promise.all([
         callDashboardApi("fetch"),
         supabase.from("user_roles").select("*"),
+        supabase.from("forum_posts").select("*").order("created_at", { ascending: false }),
       ]);
       setReports(dashData.reports || []);
       setVolunteers(dashData.volunteers || []);
@@ -128,6 +134,7 @@ const Dashboard = () => {
       setProfiles(dashData.profiles || []);
       setChatMessages(dashData.chatMessages || []);
       setUserRoles((rolesData.data as any[]) || []);
+      setForumPosts((forumData.data as any[]) || []);
     } catch (e: any) {
       toast.error("خطأ في تحميل البيانات: " + e.message);
     }
@@ -287,7 +294,6 @@ const Dashboard = () => {
   const assignRole = async () => {
     if (!selectedUserId || !selectedRole) { toast.error("يرجى اختيار المستخدم والصلاحية"); return; }
     try {
-      // Delete existing role first
       await supabase.from("user_roles").delete().eq("user_id", selectedUserId);
       if (selectedRole !== "remove") {
         await supabase.from("user_roles").insert({ user_id: selectedUserId, role: selectedRole } as any);
@@ -298,6 +304,32 @@ const Dashboard = () => {
       setSelectedRole("user");
       fetchAll();
     } catch (e: any) { toast.error("خطأ: " + e.message); }
+  };
+
+  const deleteForumPost = async (id: string) => {
+    try {
+      await supabase.from("forum_comments").delete().eq("post_id", id);
+      await supabase.from("forum_likes").delete().eq("post_id", id);
+      await supabase.from("forum_posts").delete().eq("id", id);
+      toast.success("تم حذف المنشور");
+      fetchAll();
+    } catch { toast.error("خطأ في الحذف"); }
+  };
+
+  const addForumPostAsUnit = async () => {
+    if (!forumForm.title || !forumForm.content || !user) { toast.error("يرجى ملء العنوان والمحتوى"); return; }
+    try {
+      await supabase.from("forum_posts").insert({
+        user_id: user.id,
+        title: `🏛️ ${forumForm.title}`,
+        content: forumForm.content,
+        category: forumForm.category,
+      } as any);
+      toast.success("تم نشر المنشور باسم الوحدة");
+      setForumPostDialog(false);
+      setForumForm({ title: "", content: "", category: "general" });
+      fetchAll();
+    } catch { toast.error("خطأ في النشر"); }
   };
 
   const safetyIndex = surveys.length > 0 ? Math.round((surveys.filter((s: any) => s.feels_safe).length / surveys.length) * 100) : 0;
@@ -320,6 +352,7 @@ const Dashboard = () => {
     { id: "chat", label: "المراسلات", perm: "manage_chat" },
     { id: "donations", label: "التبرعات", perm: "manage_donations" },
     { id: "surveys", label: "الاستبيانات", perm: "manage_surveys" },
+    { id: "forum", label: "المنتدى", perm: "manage_reports" },
   ].filter(t => hasPermission(t.perm) || (t.id === "users" && hasPermission("manage_reports")) || (t.id !== "roles" && role === "viewer"));
 
   return (
@@ -908,6 +941,60 @@ const Dashboard = () => {
                     <div className="text-center p-6 bg-accent rounded-xl"><p className="text-3xl font-bold text-primary">{surveys.length > 0 ? Math.round((surveys.filter((s: any) => s.knows_rights).length / surveys.length) * 100) : 0}%</p><p className="text-sm text-muted-foreground mt-1">يعرفون حقوقهم</p></div>
                     <div className="text-center p-6 bg-accent rounded-xl"><p className="text-3xl font-bold text-secondary">{surveys.length > 0 ? Math.round((surveys.filter((s: any) => s.harassed).length / surveys.length) * 100) : 0}%</p><p className="text-sm text-muted-foreground mt-1">تعرضوا لمضايقات</p></div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Forum Tab */}
+            <TabsContent value="forum">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>إدارة المنتدى ({forumPosts.length} منشور)</CardTitle>
+                  <Dialog open={forumPostDialog} onOpenChange={setForumPostDialog}>
+                    <DialogTrigger asChild><Button size="sm"><Plus className="ml-1 h-4 w-4" /> نشر باسم الوحدة</Button></DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader><DialogTitle className="flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /> نشر منشور باسم الوحدة</DialogTitle></DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div className="space-y-2"><Label>العنوان *</Label><Input value={forumForm.title} onChange={e => setForumForm({ ...forumForm, title: e.target.value })} placeholder="عنوان المنشور" /></div>
+                        <div className="space-y-2"><Label>المحتوى *</Label><Textarea value={forumForm.content} onChange={e => setForumForm({ ...forumForm, content: e.target.value })} className="min-h-[120px]" placeholder="اكتب محتوى المنشور..." /></div>
+                        <div className="space-y-2"><Label>التصنيف</Label>
+                          <Select value={forumForm.category} onValueChange={v => setForumForm({ ...forumForm, category: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="general">عام</SelectItem>
+                              <SelectItem value="awareness">توعية</SelectItem>
+                              <SelectItem value="rights">حقوق</SelectItem>
+                              <SelectItem value="experience">تجارب</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button onClick={addForumPostAsUnit} className="w-full bg-gradient-brand">نشر المنشور</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardHeader>
+                <CardContent>
+                  {forumPosts.length === 0 ? <p className="text-center py-10 text-muted-foreground">لا توجد منشورات</p> : (
+                    <div className="space-y-3">
+                      {forumPosts.map((p: any) => {
+                        const prof = profiles.find((pr: any) => pr.user_id === p.user_id);
+                        return (
+                          <div key={p.id} className="border border-border rounded-xl p-4 flex justify-between items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="secondary" className="text-xs">{p.category || "عام"}</Badge>
+                                <span className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString("ar-EG")}</span>
+                              </div>
+                              <p className="font-bold text-foreground text-sm">{p.title}</p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.content}</p>
+                              <p className="text-xs text-muted-foreground mt-1">بواسطة: {prof?.full_name || "مستخدم"} • ❤️ {p.likes_count || 0} • 💬 {p.comments_count || 0}</p>
+                            </div>
+                            <Button size="icon" variant="ghost" className="text-destructive shrink-0" onClick={() => deleteForumPost(p.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
