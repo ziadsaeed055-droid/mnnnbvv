@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Heart, Send, Plus, Clock, User, ChevronDown, ChevronUp, Trash2, Share2, Sparkles, HelpCircle, Lightbulb, BookOpen, Shield as ShieldIcon, MessageCircle, Image as ImageIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollReveal } from "@/hooks/useScrollAnimation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const categoryLabels: Record<string, string> = {
   general: "عام", awareness: "توعية", rights: "حقوق",
@@ -151,7 +152,7 @@ const Forum = () => {
   const sharePost = (postId: string) => { navigator.clipboard.writeText(`${window.location.origin}/forum#${postId}`); toast.success("تم نسخ رابط المنشور"); };
 
   const handleLongPressStart = (postId: string) => {
-    longPressTimer.current = setTimeout(() => setReactionPickerPost(postId), 400);
+    longPressTimer.current = setTimeout(() => setReactionPickerPost(postId), 250);
   };
   const handleLongPressEnd = () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); };
 
@@ -182,11 +183,30 @@ const Forum = () => {
   };
 
   if (loading) return (
-    <div className="container mx-auto px-4 py-20 text-center">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-        <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-        <p className="text-muted-foreground text-sm">جاري تحميل المنتدى...</p>
-      </motion.div>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="flex justify-between items-center mb-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <Skeleton className="h-9 w-28 rounded-lg" />
+      </div>
+      <div className="flex gap-2 mb-6">
+        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-16 rounded-full" />)}
+      </div>
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-card rounded-2xl border border-border p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <div className="space-y-1.5 flex-1"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-16" /></div>
+            </div>
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -368,9 +388,9 @@ const Forum = () => {
                     {/* Actions with reaction picker */}
                     <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border relative">
                       <div
-                        className="relative"
-                        onMouseEnter={() => setReactionPickerPost(post.id)}
-                        onMouseLeave={() => setReactionPickerPost(null)}
+                        className="relative group/reaction"
+                        onMouseEnter={() => { setReactionPickerPost(post.id); }}
+                        onMouseLeave={() => { setTimeout(() => setReactionPickerPost(prev => prev === post.id ? null : prev), 100); }}
                       >
                         <motion.button
                           whileTap={{ scale: 0.9 }}
@@ -385,21 +405,24 @@ const Forum = () => {
                           <span>{getLikeCount(post.id)}</span>
                         </motion.button>
 
-                        {/* Reaction picker - hover on desktop */}
+                        {/* Reaction picker - hover on desktop, long press mobile */}
                         <AnimatePresence>
                           {reactionPickerPost === post.id && (
                             <motion.div
                               initial={{ opacity: 0, y: 8, scale: 0.8 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 8, scale: 0.8 }}
+                              transition={{ duration: 0.15 }}
                               className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-2xl shadow-xl p-1.5 flex gap-0.5 z-20"
+                              onMouseEnter={() => setReactionPickerPost(post.id)}
+                              onMouseLeave={() => setReactionPickerPost(null)}
                             >
                               {reactions.map((r) => (
                                 <motion.button
                                   key={r.type}
                                   whileHover={{ scale: 1.4, y: -4 }}
                                   whileTap={{ scale: 0.9 }}
-                                  onClick={() => { toggleLike(post.id); setReactionPickerPost(null); }}
+                                  onClick={(e) => { e.stopPropagation(); toggleLike(post.id); setReactionPickerPost(null); }}
                                   className="w-9 h-9 rounded-full hover:bg-muted flex items-center justify-center text-lg"
                                   title={r.label}
                                 >

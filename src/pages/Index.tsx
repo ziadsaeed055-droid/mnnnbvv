@@ -1,13 +1,49 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Shield, Heart, Users, BookOpen, ChevronLeft, Calendar, Activity, ArrowLeft, Scale, HelpCircle, Award } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { Shield, Heart, Users, BookOpen, ChevronLeft, Calendar, Activity, ArrowLeft, Scale, HelpCircle, Award, ChevronDown } from "lucide-react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollReveal } from "@/hooks/useScrollAnimation";
 import OpeningCeremonySection from "@/components/OpeningCeremonySection";
 import DrGhadaSection from "@/components/DrGhadaSection";
 
+const FAQItem = ({ faq, index }: { faq: { q: string; a: string }; index: number }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <ScrollReveal delay={index * 0.08}>
+      <motion.div
+        className={`border rounded-2xl overflow-hidden transition-all ${open ? "border-primary/30 bg-card shadow-md" : "border-border bg-card/50 hover:bg-card"}`}
+      >
+        <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 p-5 text-right">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${open ? "bg-primary text-primary-foreground" : "bg-accent text-primary"}`}>
+            <HelpCircle className="h-5 w-5" />
+          </div>
+          <span className="flex-1 font-bold text-foreground text-sm md:text-base">{faq.q}</span>
+          <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.3 }}>
+            <ChevronDown className={`h-5 w-5 shrink-0 ${open ? "text-primary" : "text-muted-foreground"}`} />
+          </motion.div>
+        </button>
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="px-5 pb-5 pr-[4.5rem]">
+                <div className="h-px bg-border mb-4" />
+                <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </ScrollReveal>
+  );
+};
 const typeLabels: Record<string, string> = {
   seminar: "ندوة", workshop: "ورشة عمل", campaign: "حملة توعوية", training: "تدريب", conference: "مؤتمر",
 };
@@ -310,27 +346,27 @@ const Index = () => {
 
       {/* FAQ Section */}
       <ScrollReveal>
-        <section className="py-20 bg-card">
-          <div className="container mx-auto px-4 md:px-6 max-w-4xl">
+        <section className="py-20 relative overflow-hidden">
+          {/* Background decorations */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-background to-pink-50/30 dark:from-purple-950/20 dark:to-pink-950/10" />
+          <div className="absolute top-10 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-48 h-48 bg-secondary/5 rounded-full blur-3xl" />
+          
+          <div className="container mx-auto px-4 md:px-6 max-w-4xl relative z-10">
             <div className="text-center mb-12">
-              <div className="flex items-center justify-center gap-2 text-primary font-bold mb-2"><HelpCircle className="h-5 w-5" /><span>أسئلة شائعة</span></div>
+              <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold mb-3">
+                <HelpCircle className="h-4 w-4" /> أسئلة شائعة
+              </motion.div>
               <h2 className="text-3xl font-bold text-foreground mb-4">أسئلة يتكرر طرحها</h2>
+              <p className="text-muted-foreground">إجابات سريعة على أكثر الأسئلة شيوعًا</p>
             </div>
             <div className="space-y-3 mb-8">
               {faqs.map((faq, i) => (
-                <ScrollReveal key={i} delay={i * 0.1}>
-                  <div className="bg-muted/30 border border-border rounded-xl p-5">
-                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                      <HelpCircle className="h-4 w-4 text-primary shrink-0" />
-                      {faq.q}
-                    </h4>
-                    <p className="text-sm text-muted-foreground pr-6 leading-relaxed">{faq.a}</p>
-                  </div>
-                </ScrollReveal>
+                <FAQItem key={i} faq={faq} index={i} />
               ))}
             </div>
             <div className="text-center">
-              <Link to="/faq"><Button variant="outline" className="font-bold">عرض جميع الأسئلة ({">"}60 سؤال) <ChevronLeft className="mr-2 h-4 w-4" /></Button></Link>
+              <Link to="/faq"><Button className="bg-gradient-brand font-bold rounded-xl">عرض جميع الأسئلة ({">"}60 سؤال) <ChevronLeft className="mr-2 h-4 w-4" /></Button></Link>
             </div>
           </div>
         </section>
