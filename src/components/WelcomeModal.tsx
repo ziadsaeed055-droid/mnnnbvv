@@ -33,10 +33,11 @@ const WelcomeModal = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed z-[71] left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-md md:max-w-lg bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
+            className="fixed z-[71] inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg m-auto max-h-[calc(100vh-2rem)] md:max-h-[85vh] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col"
+            style={{ maxWidth: "min(calc(100vw - 2rem), 32rem)" }}
           >
             {/* Header with photo */}
-            <div className="relative bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600 px-5 py-4 flex items-center gap-4">
+            <div className="relative bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600 px-5 py-4 flex items-center gap-4 shrink-0">
               <button onClick={dismiss} className="absolute top-3 left-3 w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors">
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -44,7 +45,7 @@ const WelcomeModal = () => {
                 <img
                   src={developerPhoto}
                   alt="محمد أيمن - المطور"
-                  className="w-14 h-14 md:w-20 md:h-20 rounded-xl object-cover border-2 border-white/30 shadow-lg"
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-xl object-cover border-2 border-white/30 shadow-lg"
                 />
                 <motion.div
                   initial={{ scale: 0 }}
@@ -62,7 +63,7 @@ const WelcomeModal = () => {
             </div>
 
             {/* Content */}
-            <div className="px-5 py-4 space-y-3 max-h-[55vh] md:max-h-[60vh] overflow-y-auto">
+            <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
               <p className="text-sm text-foreground leading-relaxed">
                 أنا الطالب <strong>محمد أيمن محمد سلطان</strong>، قسم تكنولوجيا المعلومات والاتصالات.
                 تطوعت بوقتي وجهدي وعلمي لبناء هذا النظام الرقمي المتكامل لوحدة تكافؤ الفرص ومناهضة العنف ضد المرأة
@@ -70,14 +71,14 @@ const WelcomeModal = () => {
               </p>
 
               <p className="text-sm text-foreground leading-relaxed">
-                بنيت هذا النظام بمنهجية <strong>الهندسة التجميعية (Engineering Assembly)</strong>، حيث جمعت أفضل المكتبات والأدوات مفتوحة المصدر وربطتها وكيّفتها لتعمل كمنظومة واحدة متكاملة:
+                بنيت هذا النظام بمنهجية <strong>الهندسة التجميعية (Engineering Assembly)</strong>، حيث جمعت أفضل المكتبات والأدوات مفتوحة المصدر المتاحة على الإنترنت وربطتها وكيّفتها مع قواعد البيانات لتعمل كمنظومة واحدة متكاملة:
               </p>
 
               <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
                 <p>• <strong>الواجهة:</strong> React + TypeScript + Tailwind CSS + Framer Motion</p>
                 <p>• <strong>قاعدة البيانات:</strong> PostgreSQL + Row Level Security + Realtime</p>
                 <p>• <strong>البنية:</strong> Edge Functions + Auth + Storage + PWA</p>
-                <p>• <strong>الأدوات:</strong> Vite + Shadcn/UI + React Query</p>
+                <p>• <strong>الذكاء الاصطناعي:</strong> Chatbot ذكي متكامل للدعم والمساعدة</p>
               </div>
 
               <Button onClick={dismiss} className="w-full bg-gradient-brand font-bold h-10 rounded-xl text-sm">

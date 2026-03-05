@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { User, Phone, GraduationCap, Save, LogOut, Camera, MessageSquare, Send, Bell, Edit3, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { User, Phone, GraduationCap, Save, LogOut, Camera, MessageSquare, Send, Bell, Edit3, X, Check, ExternalLink } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 const collegeLabels: Record<string, string> = {
@@ -45,6 +45,9 @@ const Profile = () => {
   const [chatMsg, setChatMsg] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [readNotifs, setReadNotifs] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("read-notifs") || "[]")); } catch { return new Set(); }
+  });
 
   useEffect(() => {
     if (profile) {
@@ -78,11 +81,27 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20);
+      const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(30);
       setNotifications((data as any[]) || []);
     };
     fetchNotifications();
   }, []);
+
+  const markAsRead = (id: string) => {
+    const updated = new Set(readNotifs);
+    updated.add(id);
+    setReadNotifs(updated);
+    localStorage.setItem("read-notifs", JSON.stringify([...updated]));
+  };
+
+  const markAllRead = () => {
+    const allIds = new Set(notifications.map(n => n.id));
+    setReadNotifs(allIds);
+    localStorage.setItem("read-notifs", JSON.stringify([...allIds]));
+    toast.success("تم تحديد جميع الإشعارات كمقروءة");
+  };
+
+  const unreadCount = notifications.filter(n => !readNotifs.has(n.id)).length;
 
   const handleAvatarUpload = async (file: File) => {
     if (!user) return;
@@ -128,16 +147,17 @@ const Profile = () => {
 
   const deptLabel = ekcDepartments.find(d => d.value === department)?.label || department;
 
+  const notifTypeIcons: Record<string, string> = {
+    general: "📢", activity: "🎯", warning: "⚠️", success: "✅", info: "ℹ️",
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
-      {/* Profile Card - Social Media Style */}
+      {/* Profile Card */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm mb-6">
-        {/* Cover */}
         <div className="h-28 md:h-36 bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 relative">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNhKSIvPjwvc3ZnPg==')] opacity-30" />
         </div>
-
-        {/* Avatar + Info */}
         <div className="px-6 pb-6 -mt-12 relative">
           <div className="flex flex-col md:flex-row md:items-end gap-4">
             <div className="relative shrink-0">
@@ -148,11 +168,7 @@ const Profile = () => {
                   <User className="h-12 w-12 text-white" />
                 </div>
               )}
-              <button
-                onClick={() => avatarRef.current?.click()}
-                className="absolute -bottom-1 -left-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-                disabled={uploading}
-              >
+              <button onClick={() => avatarRef.current?.click()} className="absolute -bottom-1 -left-1 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform" disabled={uploading}>
                 <Camera className="h-4 w-4" />
               </button>
               <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])} />
@@ -177,15 +193,10 @@ const Profile = () => {
         </div>
       </motion.div>
 
-      {/* Edit Form - slides down */}
+      {/* Edit Form */}
       <AnimatePresence>
         {editing && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-6 overflow-hidden"
-          >
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 overflow-hidden">
             <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-bold text-foreground">تعديل البيانات</h3>
@@ -235,11 +246,73 @@ const Profile = () => {
       </AnimatePresence>
 
       {/* Tabs */}
-      <Tabs defaultValue="chat" className="space-y-4">
+      <Tabs defaultValue="notifications" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="notifications" className="relative">
+            <Bell className="h-4 w-4 ml-1" /> الإشعارات
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -left-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="chat"><MessageSquare className="h-4 w-4 ml-1" /> المراسلات</TabsTrigger>
-          <TabsTrigger value="notifications"><Bell className="h-4 w-4 ml-1" /> الإشعارات</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="notifications">
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            {/* Notification Header */}
+            <div className="p-4 border-b border-border flex items-center justify-between bg-accent/30">
+              <div>
+                <h3 className="font-bold text-foreground text-sm">الإشعارات</h3>
+                <p className="text-xs text-muted-foreground">{unreadCount > 0 ? `${unreadCount} إشعار جديد` : "لا توجد إشعارات جديدة"}</p>
+              </div>
+              {unreadCount > 0 && (
+                <Button size="sm" variant="ghost" onClick={markAllRead} className="text-xs gap-1">
+                  <Check className="h-3 w-3" /> تحديد الكل كمقروء
+                </Button>
+              )}
+            </div>
+
+            {notifications.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Bell className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">لا توجد إشعارات حالياً</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
+                {notifications.map((n, i) => {
+                  const isRead = readNotifs.has(n.id);
+                  return (
+                    <motion.div
+                      key={n.id}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      onClick={() => markAsRead(n.id)}
+                      className={`flex gap-3 p-4 cursor-pointer transition-colors hover:bg-accent/30 ${!isRead ? "bg-primary/5" : ""}`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg ${!isRead ? "bg-primary/10" : "bg-muted"}`}>
+                        {notifTypeIcons[n.type] || "📢"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-sm ${!isRead ? "font-bold text-foreground" : "text-foreground"}`}>{n.title}</p>
+                          {!isRead && <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleDateString("ar-EG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        {n.link && (
+                          <Link to={n.link} className="inline-flex items-center gap-1 text-[10px] text-primary mt-1 hover:underline">
+                            <ExternalLink className="h-2.5 w-2.5" /> عرض
+                          </Link>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
 
         <TabsContent value="chat">
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
@@ -264,29 +337,6 @@ const Profile = () => {
               <Input value={chatMsg} onChange={e => setChatMsg(e.target.value)} placeholder="اكتب رسالتك..." className="flex-1" onKeyDown={e => e.key === "Enter" && sendMessage()} />
               <Button onClick={sendMessage} size="icon" className="bg-gradient-brand shrink-0" disabled={sendingMsg}><Send className="h-4 w-4" /></Button>
             </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="notifications">
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
-            {notifications.length === 0 ? (
-              <p className="text-center text-muted-foreground py-10">لا توجد إشعارات حالياً</p>
-            ) : (
-              <div className="space-y-3">
-                {notifications.map(n => (
-                  <div key={n.id} className="flex gap-3 p-4 bg-accent/30 rounded-xl border border-border">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Bell className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-foreground text-sm">{n.title}</p>
-                      <p className="text-sm text-muted-foreground">{n.message}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{new Date(n.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </TabsContent>
       </Tabs>
