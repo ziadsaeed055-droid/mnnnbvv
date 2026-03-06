@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Shield, Heart, Users, BookOpen, ChevronLeft, Calendar, Activity, ArrowLeft, Scale, HelpCircle, Award, ChevronDown } from "lucide-react";
+import { Shield, Heart, Users, BookOpen, ChevronLeft, Calendar, Activity, ArrowLeft, Scale, HelpCircle, ChevronDown } from "lucide-react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollReveal } from "@/hooks/useScrollAnimation";
 import OpeningCeremonySection from "@/components/OpeningCeremonySection";
 import DrGhadaSection from "@/components/DrGhadaSection";
+import TeamSection from "@/components/TeamSection";
+import ncwLogo from "@/assets/ncw-logo.png";
+import btuLogo from "@/assets/btu-logo.png";
 
 const FAQItem = ({ faq, index }: { faq: { q: string; a: string }; index: number }) => {
   const [open, setOpen] = useState(false);
@@ -51,7 +54,7 @@ const typeLabels: Record<string, string> = {
 const Index = () => {
   const [safetyIndex, setSafetyIndex] = useState(0);
   const [activities, setActivities] = useState<any[]>([]);
-  const [volunteers, setVolunteers] = useState<any[]>([]);
+  const [_volunteers, setVolunteers] = useState<any[]>([]);
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
@@ -308,41 +311,23 @@ const Index = () => {
       {/* Dr. Ghada Section */}
       <DrGhadaSection />
 
-      {/* Volunteers Section */}
-      {volunteers.length > 0 && (
-        <ScrollReveal>
-          <section className="py-20 bg-muted/30">
-            <div className="container mx-auto px-4 md:px-6">
-              <div className="flex justify-between items-end mb-12">
-                <div>
-                  <div className="flex items-center gap-2 text-primary font-bold mb-2"><Award className="h-5 w-5" /><span>أبطال التغيير</span></div>
-                  <h2 className="text-3xl font-bold text-foreground mb-2">فريق المتطوعين</h2>
-                  <p className="text-muted-foreground">طلاب متميزون يعملون لبيئة جامعية أكثر أماناً</p>
-                </div>
-                <Link to="/volunteers"><Button variant="outline" className="hidden md:flex">عرض الكل</Button></Link>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {volunteers.map((v: any, i: number) => (
-                  <ScrollReveal key={v.id} delay={i * 0.1}>
-                    <motion.div whileHover={{ y: -5 }} className="bg-card rounded-2xl border border-border p-6 text-center hover:shadow-md transition-shadow">
-                      {v.photo_url ? (
-                        <img src={v.photo_url} alt={v.name} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover border-2 border-primary/20" />
-                      ) : (
-                        <div className="w-16 h-16 rounded-full mx-auto mb-3 bg-accent flex items-center justify-center border-2 border-primary/20">
-                          <span className="text-xl font-bold text-primary">{v.name?.charAt(0)}</span>
-                        </div>
-                      )}
-                      <h4 className="font-bold text-foreground text-sm">{v.name}</h4>
-                      {v.role_title && <p className="text-xs text-primary mt-1">{v.role_title}</p>}
-                    </motion.div>
-                  </ScrollReveal>
-                ))}
-              </div>
-              <div className="mt-8 text-center md:hidden"><Link to="/volunteers"><Button variant="outline" className="w-full">عرض كل المتطوعين</Button></Link></div>
+      {/* Team Volunteers Section */}
+      <TeamSection />
+
+      {/* Partners Logos Section */}
+      <ScrollReveal>
+        <section className="py-12 bg-card border-y border-border">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-8">
+              <p className="text-sm font-bold text-muted-foreground">تحت رعاية وبالتعاون مع</p>
             </div>
-          </section>
-        </ScrollReveal>
-      )}
+            <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
+              <img src={btuLogo} alt="جامعة بني سويف التكنولوجية" className="h-16 md:h-20 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity" />
+              <img src={ncwLogo} alt="المجلس القومي للمرأة" className="h-16 md:h-20 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity" />
+            </div>
+          </div>
+        </section>
+      </ScrollReveal>
 
       {/* FAQ Section */}
       <ScrollReveal>

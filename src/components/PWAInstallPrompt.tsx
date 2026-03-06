@@ -38,18 +38,23 @@ const PWAInstallPrompt = ({ onDismiss }: { onDismiss: () => void }) => {
   const handleInstall = async () => {
     if (deferredPrompt) {
       setInstalling(true);
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        localStorage.setItem("pwa-install-dismissed", "installed");
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          localStorage.setItem("pwa-install-dismissed", "installed");
+        }
+      } catch (err) {
+        console.error("Install prompt error:", err);
       }
       setDeferredPrompt(null);
       setInstalling(false);
+      dismiss();
     } else {
-      // iOS fallback - show instructions
-      localStorage.setItem("pwa-install-dismissed", "true");
+      // iOS fallback - redirect to install page for instructions
+      dismiss();
+      window.location.href = "/install";
     }
-    dismiss();
   };
 
   const dismiss = () => {

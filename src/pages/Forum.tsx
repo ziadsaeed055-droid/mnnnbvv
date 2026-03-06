@@ -366,19 +366,19 @@ const Forum = () => {
                     <h3 className="text-base font-bold text-foreground mb-1.5">{post.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-                    {/* Post images */}
+                    {/* Post images - responsive */}
                     {post.image_url && (() => {
                       const urls = post.image_url.split("|||").filter(Boolean);
                       if (urls.length === 1) return (
-                        <div className="mt-3 rounded-xl overflow-hidden border border-border">
-                          <img src={urls[0]} alt="" className="w-full max-h-80 object-cover" />
+                        <div className="mt-3 rounded-xl overflow-hidden border border-border max-w-full">
+                          <img src={urls[0]} alt="" className="w-full max-h-[400px] object-contain bg-muted/30" />
                         </div>
                       );
                       return (
-                        <div className={`mt-3 grid gap-1.5 ${urls.length === 2 ? "grid-cols-2" : urls.length <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
+                        <div className={`mt-3 grid gap-1.5 ${urls.length === 2 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"}`}>
                           {urls.slice(0, 6).map((url: string, i: number) => (
                             <div key={i} className="rounded-xl overflow-hidden border border-border aspect-square">
-                              <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                              <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" />
                             </div>
                           ))}
                         </div>
